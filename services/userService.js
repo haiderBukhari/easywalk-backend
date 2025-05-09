@@ -21,7 +21,7 @@ const sendOTP = async (phoneNumber, otp) => {
     const message = await twilioClient.messages.create({
       body: `Hi! Thanks for registering. Here is your verification code: ${otp}`,
       from: '+19592712080',
-      to: phoneNumber
+      to: `+${phoneNumber}`
     });
     return message.sid;
   } catch (error) {
