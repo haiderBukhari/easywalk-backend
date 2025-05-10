@@ -188,6 +188,10 @@ export const loginUser = async (email, password) => {
     .eq("email", email)
     .single();
 
+  if (!data) {
+    throw new Error("Invalid email or password");
+  }
+
   if (!data.is_verified) {
     const otp = generateOTP();
     await sendOTP(data.contact_number, otp);
