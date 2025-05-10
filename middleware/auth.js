@@ -36,7 +36,7 @@ export const verifyToken = (req, res, next) => {
 
 export const verifyTeacher = (req, res, next) => {
 
-    if (req.user.role !== 'teacher') {
+    if (!(req.user.role === 'teacher' || req.user.role === 'admin')) {
         return res.status(403).json({
             success: false,
             message: 'Access denied. Only teachers can perform this action.'
