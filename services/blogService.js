@@ -3,7 +3,7 @@ import supabase from "../config/supabaseClient.js";
 class BlogService {
     // Create a new blog
     async createBlog(blogData) {
-        const { course_id, content, status, title } = blogData;
+        const { course_id, content, status, title, teacherId } = blogData;
 
         // Validate content array has at least one item
         if (!Array.isArray(content) || content.length === 0) {
@@ -14,6 +14,7 @@ class BlogService {
             .from('blogs')
             .insert([{
                 course_id,
+                user_id: teacherId,
                 content,
                 status: status || 'draft',
                 title,
@@ -28,18 +29,6 @@ class BlogService {
     }
 
     async getBlogByTeacherId(teacherId) {
-        const { data: courses, error: coursesError } = await supabase
-            .from('courses')
-            .select('id, title')
-            .eq('teacher_id', teacherId);
-
-        if (coursesError) throw coursesError;
-        
-        if (!courses || courses.length === 0) {
-            return [];
-        }
-
-        const courseIds = courses.map(course => course.id);
 
         const { data: exams, error: examsError } = await supabase
             .from('blogs')
@@ -51,7 +40,7 @@ class BlogService {
                     teacher_id
                 )
             `)
-            .in('course_id', courseIds)
+            .eq('user_id', teacherId)
             .order('created_at', { ascending: false });
 
         if (examsError) throw examsError;

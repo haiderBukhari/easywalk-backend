@@ -5,6 +5,7 @@ class BlogController {
     async createBlog(req, res) {
         try {
             const { course_id } = req.params;
+            const teacherId = req.user.id;
 
             const { content, status, title } = req.body;
 
@@ -22,7 +23,7 @@ class BlogController {
                 return res.status(400).json({ error: 'Invalid status value' });
             }
 
-            const blog = await blogService.createBlog({ course_id, content, status, title });
+            const blog = await blogService.createBlog({ course_id, content, status, title, teacherId });
             res.status(201).json(blog);
         } catch (error) {
             res.status(500).json({ error: error.message });

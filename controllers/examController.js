@@ -7,6 +7,7 @@ class ExamController {
         try {
             const { courseId } = req.params;
             const { title, description, questions } = req.body;
+            const teacherId = req.user.id;
 
             if (!title) {
                 return res.status(400).json({
@@ -47,16 +48,10 @@ class ExamController {
                 });
             }
 
-            if (course.teacher_id !== req.user.id) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'You are not authorized to add exams to this course'
-                });
-            }
-
             const exam = await examService.createExam({
                 course_id: courseId,
                 title,
+                teacherId,
                 description,
                 questions
             });

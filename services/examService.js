@@ -3,13 +3,14 @@ import supabase from "../config/supabaseClient.js";
 class ExamService {
     // Create a new exam
     async createExam(examData) {
-        const { course_id, title, description, questions } = examData;
+        const { course_id, title, description, questions, teacherId } = examData;
         const { data, error } = await supabase
             .from('exams')
             .insert([{
                 course_id,
                 title,
                 description,
+                user_id: teacherId,
                 questions,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
@@ -80,19 +81,6 @@ class ExamService {
 
     async getExamsByTeacherId(teacherId) {
         // First get all courses for the teacher
-        const { data: courses, error: coursesError } = await supabase
-            .from('courses')
-            .select('id, title')
-            .eq('teacher_id', teacherId);
-
-        if (coursesError) throw coursesError;
-        
-        if (!courses || courses.length === 0) {
-            return [];
-        }
-
-        const courseIds = courses.map(course => course.id);
-
         const { data: exams, error: examsError } = await supabase
             .from('exams')
             .select(`
@@ -103,12 +91,11 @@ class ExamService {
                     teacher_id
                 )
             `)
-            .in('course_id', courseIds)
+            .eq('user_id', teacherId)
             .order('created_at', { ascending: false });
 
         if (examsError) throw examsError;
 
-        // Map the exams to include course name
         return exams.map(exam => ({
             ...exam,
             course_name: exam.courses?.title || 'Unknown Course'
