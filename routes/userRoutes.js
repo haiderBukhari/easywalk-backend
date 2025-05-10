@@ -7,9 +7,9 @@ import { verifyOTP, loginUser } from "../services/userService.js";
 const router = express.Router();
 
 // User routes
-router.post("/users", addUser);
+router.post("/", addUser);
 
-router.get("/users/login", async (req, res) => {
+router.get("/login", async (req, res) => {
   try {
     const { email, password } = req.query;
     
@@ -24,7 +24,7 @@ router.get("/users/login", async (req, res) => {
   }
 });
 
-router.post("/users/verify-otp", async (req, res) => {
+router.post("/verify-otp", async (req, res) => {
   try {
     const { userId, otp } = req.body;
     if (!userId || !otp) {
