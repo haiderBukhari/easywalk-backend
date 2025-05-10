@@ -20,6 +20,12 @@ router.get("/login", async (req, res) => {
     const user = await loginUser(email, password);
     res.status(200).json(user);
   } catch (error) {
+    if (error.userId) {
+      return res.status(error.status || 403).json({ 
+        error: error.message,
+        userId: error?.userId 
+      });
+    }
     res.status(401).json({ error: error.message });
   }
 });

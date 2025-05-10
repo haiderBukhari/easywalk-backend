@@ -188,6 +188,23 @@ export const loginUser = async (email, password) => {
     .eq("email", email)
     .single();
 
+  if (!data.is_verified) {
+    const otp = generateOTP();
+    await sendOTP(data.contact_number, otp);
+
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ otp })
+      .eq("id", data.id);
+
+    if (updateError) throw new Error(updateError.message);
+
+    const error = new Error("Please verify your number to login");
+    error.userId = data.id;
+    error.status = 403;
+    throw error;
+  }
+
   if (error) {
     if (error.code === 'PGRST116') {
       throw new Error("Invalid email or password");
