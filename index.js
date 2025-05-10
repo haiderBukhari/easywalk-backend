@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import userRoutes from "./routes/userRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
+import examRoutes from "./routes/examRoutes.js";
+import blogRoutes from "./routes/blogRoutes.js";
 import { swaggerUi, specs } from "./config/swagger.js";
 
 dotenv.config();
@@ -17,6 +19,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 // API routes
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("/api/exams", examRoutes);
+app.use("/api/blogs", blogRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running... <a href='/api-docs'>View API documentation</a>");

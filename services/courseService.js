@@ -124,6 +124,16 @@ class CourseService {
         if (error) throw error;
         return data;
     }
+
+    async getCourseTitles() {
+        const { data, error } = await supabase
+            .from('courses')
+            .select('id, title')
+            .order('title', { ascending: true });
+
+        if (error) throw error;
+        return data;
+    }
 }
 
 export default new CourseService(); 

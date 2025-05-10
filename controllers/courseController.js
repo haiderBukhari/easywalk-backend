@@ -175,6 +175,24 @@ class CourseController {
             });
         }
     }
+
+    // Get all course titles
+    async getCourseTitles(req, res) {
+        try {
+            const courses = await courseService.getCourseTitles();
+            res.status(200).json({
+                success: true,
+                data: courses
+            });
+        } catch (error) {
+            console.error('Error fetching course titles:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching course titles',
+                error: error.message
+            });
+        }
+    }
 }
 
 export default new CourseController(); 
