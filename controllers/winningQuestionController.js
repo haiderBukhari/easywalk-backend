@@ -30,4 +30,32 @@ export const createWinningQuestion = async (req, res) => {
             error: error.message
         });
     }
+};
+
+export const getWinningQuestionsByTeacher = async (req, res) => {
+    try {
+        const teacherId = req.user.id;
+
+        if (!teacherId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Teacher ID is required'
+            });
+        }
+
+        const winningQuestions = await adminService.getWinningQuestionsByTeacher(teacherId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Winning questions fetched successfully',
+            data: winningQuestions
+        });
+    } catch (error) {
+        console.error('Error fetching winning questions:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching winning questions',
+            error: error.message
+        });
+    }
 }; 

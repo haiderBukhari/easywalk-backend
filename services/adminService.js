@@ -205,4 +205,27 @@ export const createWinningQuestion = async (userId, questionData) => {
     } catch (error) {
         throw new Error(`Error creating winning question: ${error.message}`);
     }
+};
+
+export const getWinningQuestionsByTeacher = async (teacherId) => {
+    try {
+        const { data: winningQuestions, error } = await supabase
+            .from('winning_questions')
+            .select(`
+                id,
+                question,
+                answer,
+                created_at,
+                updated_at,
+                user_id
+            `)
+            .eq('user_id', teacherId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(error.message);
+
+        return winningQuestions;
+    } catch (error) {
+        throw new Error(`Error fetching winning questions: ${error.message}`);
+    }
 }; 

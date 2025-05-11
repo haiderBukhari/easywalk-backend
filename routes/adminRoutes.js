@@ -50,5 +50,6 @@ router.put('/teacher/status/:id', verifyToken, isAdmin, async (req, res) => {
 
 // Winning Questions routes
 router.post('/winningquestion', verifyToken, winningQuestionController.createWinningQuestion);
+router.get('/winningquestion/teacher', verifyToken, winningQuestionController.getWinningQuestionsByTeacher);
 
 export default router; 
