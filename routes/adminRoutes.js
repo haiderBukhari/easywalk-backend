@@ -1,6 +1,7 @@
 import express from 'express';
 import { getAllTeachers, toggleTeacherStatus, getTeacherDetails } from '../services/adminService.js';
 import { verifyToken } from '../middleware/auth.js';
+import * as winningQuestionController from '../controllers/winningQuestionController.js';
 
 const router = express.Router();
 
@@ -26,7 +27,6 @@ router.get('/teachers', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Get specific teacher details
 router.get('/teacher/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
@@ -47,5 +47,8 @@ router.put('/teacher/status/:id', verifyToken, isAdmin, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// Winning Questions routes
+router.post('/winningquestion', verifyToken, winningQuestionController.createWinningQuestion);
 
 export default router; 

@@ -183,4 +183,26 @@ export const toggleTeacherStatus = async (teacherId) => {
     } catch (error) {
         throw new Error(`Error toggling teacher status: ${error.message}`);
     }
+};
+
+export const createWinningQuestion = async (userId, questionData) => {
+    try {
+        const { data: winningQuestion, error } = await supabase
+            .from('winning_questions')
+            .insert([
+                {
+                    question: questionData.question,
+                    answer: questionData.answer,
+                    user_id: userId
+                }
+            ])
+            .select()
+            .single();
+
+        if (error) throw new Error(error.message);
+
+        return winningQuestion;
+    } catch (error) {
+        throw new Error(`Error creating winning question: ${error.message}`);
+    }
 }; 
