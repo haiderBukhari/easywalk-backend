@@ -192,6 +192,10 @@ export const loginUser = async (email, password) => {
     throw new Error("Invalid email or password");
   }
 
+  if(data.status === 'inactive') {
+    throw new Error("Your account is inactive. Please contact the administrator.");
+  }
+
   if (!data.is_verified) {
     const otp = generateOTP();
     await sendOTP(data.contact_number, otp);
