@@ -168,7 +168,7 @@ class ExamController {
 
             // Verify course ownership
             const course = await courseService.getCourseById(exam.course_id);
-            if (course.teacher_id !== req.user.id) {
+            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to update this exam'
@@ -212,7 +212,7 @@ class ExamController {
 
             // Verify course ownership
             const course = await courseService.getCourseById(exam.course_id);
-            if (course.teacher_id !== req.user.id) {
+            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to delete this exam'

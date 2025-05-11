@@ -16,7 +16,7 @@ class LessonController {
                 });
             }
 
-            if (course.teacher_id !== req.user.id) {
+            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to add lessons to this course'
@@ -117,7 +117,7 @@ class LessonController {
                 });
             }
 
-            if (course.teacher_id !== req.user.id) {
+            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to update lessons in this course'
@@ -160,7 +160,7 @@ class LessonController {
                 });
             }
 
-            if (course.teacher_id !== req.user.id) {
+            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to delete lessons from this course'
@@ -205,7 +205,7 @@ class LessonController {
                 });
             }
 
-            if (course.teacher_id !== req.user.id) {
+            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to reorder lessons in this course'
