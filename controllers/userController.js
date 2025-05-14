@@ -1,3 +1,4 @@
+import supabase from "../config/supabaseClient.js";
 import { 
   createUser, 
   getUsers, 
@@ -88,4 +89,33 @@ export const findUsers = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+export const getUserProfile = async (id) => {
+  const { data, error } = await supabase
+    .from("users")
+    .select("display_name, full_name, contact_number, password, profile_image")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    throw new Error("User not found");
+  }
+
+  return data;
+};
+
+export const updateUserProfile = async (id, updates) => {
+  const { data, error } = await supabase
+    .from("users")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error || !data) {
+    throw new Error("Failed to update profile");
+  }
+
+  return data;
 };

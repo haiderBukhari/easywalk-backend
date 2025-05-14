@@ -36,7 +36,7 @@ const checkExistingUser = async (email, contactNumber) => {
     .or(`email.eq.${email},contact_number.eq.${contactNumber}`);
 
   if (error) throw new Error(error.message);
-  
+
   if (data && data.length > 0) {
     const existingUser = data[0];
     if (existingUser.email === email) {
@@ -93,13 +93,30 @@ export const createUser = async (userData) => {
   return data[0];
 };
 
-export const verifyOTP = async (userId, otp) => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("otp")
-    .eq("id", userId)
-    .single();
-
+export const verifyOTP = async (userId, otp, email) => {
+  let data;
+  let error;
+  
+  if (email) {
+    const result = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
+  
+    data = result.data;
+    error = result.error;
+  } else {
+    const result = await supabase
+      .from("users")
+      .select("otp")
+      .eq("id", userId)
+      .single();
+  
+    data = result.data;
+    error = result.error;
+  }
+  
   if (error) throw new Error(error.message);
   if (!data) throw new Error("User not found");
 
@@ -107,11 +124,10 @@ export const verifyOTP = async (userId, otp) => {
     throw new Error("Invalid OTP");
   }
 
-  // Clear OTP after successful verification
   const { error: updateError } = await supabase
     .from("users")
     .update({ otp: null, is_verified: true })
-    .eq("id", userId);
+    .eq("id", data.id);
 
   if (updateError) throw new Error(updateError.message);
 
@@ -192,7 +208,7 @@ export const loginUser = async (email, password) => {
     throw new Error("Invalid email or password");
   }
 
-  if(data.status === 'inactive') {
+  if (data.status === 'inactive') {
     throw new Error("Your account is inactive. Please contact the administrator.");
   }
 
@@ -231,7 +247,7 @@ export const loginUser = async (email, password) => {
 
   // Generate JWT token
   const token = jwt.sign(
-    { 
+    {
       id: data.id,
       email: data.email,
       role: data.role || 'user'
@@ -242,10 +258,64 @@ export const loginUser = async (email, password) => {
 
   // Remove sensitive data before sending response
   const { password: _, otp: __, ...userWithoutSensitiveData } = data;
-  
+
   return {
     user: userWithoutSensitiveData,
     token,
     role: data.role || 'user'
   };
 };
+
+export const sendOtpAgain = async (email) => {
+  // Get user by email
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("email", email)
+    .single();
+
+  if (!data) {
+    throw new Error("User not found");
+  }
+
+  if (data.status === 'inactive') {
+    throw new Error("Your account is inactive. Please contact the administrator.");
+  }
+
+  const otp = generateOTP();
+  const otpResponse = await sendOTP(data.contact_number, otp);
+
+  const { error: updateError } = await supabase
+    .from("users")
+    .update({ otp })
+    .eq("email", email);
+
+  if (updateError) throw new Error(updateError.message);
+
+  return { success: true, message: "OTP sent successfully" };
+};
+
+export const updateUserDetails = async (email, contact_number) => {
+  const { data, error } = await supabase
+    .from("users")
+    .update({ contact_number })
+    .eq("email", email);
+
+
+  if (error) throw new Error(error.message);
+  return { success: true, message: "User details updated successfully" };
+};
+
+
+export const updateUserPassword = async (email, password) => {
+  const { data, error } = await supabase
+    .from("users")
+    .update({ password })
+    .eq("email", email);
+
+  if (error) throw new Error(error.message);
+  return { success: true, message: "User password updated successfully" };
+};
+
+
+
