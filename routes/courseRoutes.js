@@ -11,10 +11,14 @@ router.get('/teacher', verifyToken, verifyTeacher, courseController.getCoursesBy
 router.get('/titles', verifyToken, courseController.getCourseTitles);
 router.get('/', verifyToken, courseController.getAllCourses);
 router.get('/:id', verifyToken, courseController.getCourseById);
+router.get('/:id/categories', verifyToken, courseController.getCourseCategoriesById);
 router.put('/:id', verifyToken, verifyTeacher, courseController.updateCourse);
 router.delete('/:id', verifyToken, verifyTeacher, courseController.deleteCourse);
 
 // Lesson routes
+router.get('/lessons/teacher', verifyToken, verifyTeacher, lessonController.getLessonsByTeacherId);
+router.delete('/lessons/:id', verifyToken, verifyTeacher, lessonController.deleteIndividualLesson);
+
 router.post('/:courseId/lessons', verifyToken, verifyTeacher, lessonController.createLesson);
 router.get('/:courseId/lessons', verifyToken, lessonController.getLessonsByCourseId);
 router.get('/:courseId/lessons/:id', verifyToken, lessonController.getLessonById);

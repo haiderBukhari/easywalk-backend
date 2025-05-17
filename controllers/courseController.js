@@ -1,13 +1,13 @@
 import courseService from '../services/courseService.js';
+import * as adminService from '../services/adminService.js';
 
 class CourseController {
     // Create a new course
     async createCourse(req, res) {
         try {
-            const { title, description, category, cover_image, ...otherFields } = req.body;
+            const { title, description, categories, cover_image, ...otherFields } = req.body;
             const teacher_id = req.user.id;
 
-            // Only validate essential fields
             if (!title) {
                 return res.status(400).json({
                     success: false,
@@ -18,7 +18,7 @@ class CourseController {
             const course = await courseService.createCourse({
                 title,
                 description,
-                category,
+                category: categories,
                 cover_image,
                 teacher_id,
                 ...otherFields
@@ -96,7 +96,7 @@ class CourseController {
                 });
             }
 
-            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to update this course'
@@ -133,7 +133,7 @@ class CourseController {
                 });
             }
 
-            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to delete this course'
@@ -193,6 +193,34 @@ class CourseController {
             });
         }
     }
+
+    async getCourseCategoriesById(req, res) {
+        try {
+            const courseId = req.params.id;
+
+            if (!courseId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Course ID is required'
+                });
+            }
+
+            const courseCategories = await adminService.getCourseCategoriesById(courseId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Course categories fetched successfully',
+                data: courseCategories
+            });
+        } catch (error) {
+            console.error('Error fetching course categories:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching course categories',
+                error: error.message
+            });
+        }
+    };
 }
 
 export default new CourseController(); 

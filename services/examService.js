@@ -3,7 +3,7 @@ import supabase from "../config/supabaseClient.js";
 class ExamService {
     // Create a new exam
     async createExam(examData) {
-        const { course_id, title, description, questions, teacherId } = examData;
+        const { course_id, title, description, questions, teacherId, category, status } = examData;
         const { data, error } = await supabase
             .from('exams')
             .insert([{
@@ -12,6 +12,8 @@ class ExamService {
                 description,
                 user_id: teacherId,
                 questions,
+                category,
+                status,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }])

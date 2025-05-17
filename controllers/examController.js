@@ -6,7 +6,7 @@ class ExamController {
     async createExam(req, res) {
         try {
             const { courseId } = req.params;
-            const { title, description, questions } = req.body;
+            const { title, description, questions, category, status } = req.body;
             const teacherId = req.user.id;
 
             if (!title) {
@@ -52,6 +52,8 @@ class ExamController {
                 course_id: courseId,
                 title,
                 teacherId,
+                category,
+                status,
                 description,
                 questions
             });
@@ -168,7 +170,7 @@ class ExamController {
 
             // Verify course ownership
             const course = await courseService.getCourseById(exam.course_id);
-            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to update this exam'
@@ -212,7 +214,7 @@ class ExamController {
 
             // Verify course ownership
             const course = await courseService.getCourseById(exam.course_id);
-            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to delete this exam'

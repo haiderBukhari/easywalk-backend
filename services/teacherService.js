@@ -48,15 +48,15 @@ export const getTeacherPerformance = async (teacherId, timeRange) => {
     const dates = dateInfo.dates;
     const performance = {};
 
-    // Get course creation activities
-    const { data: courses, error: coursesError } = await supabase
-        .from('courses')
+    // Get lesson creation activities
+    const { data: lessons, error: lessonsError } = await supabase
+        .from('lessons')
         .select('created_at')
-        .eq('teacher_id', teacherId)
+        .eq('user_id', teacherId)
         .gte('created_at', dates[0])
         .lte('created_at', timeRange === 'week' ? dates[dates.length - 1] : dateInfo.queryEndDate);
 
-    if (coursesError) throw new Error(coursesError.message);
+    if (lessonsError) throw new Error(lessonsError.message);
 
     // Get blog activities
     const { data: blogs, error: blogsError } = await supabase
@@ -90,9 +90,9 @@ export const getTeacherPerformance = async (teacherId, timeRange) => {
         }
     });
 
-    // Process course activities
-    courses?.forEach(course => {
-        const date = course.created_at.split('T')[0];
+    // Process lesson activities
+    lessons?.forEach(lesson => {
+        const date = lesson.created_at.split('T')[0];
         if (timeRange === 'week') {
             performance[getDayName(date)]++;
         } else {

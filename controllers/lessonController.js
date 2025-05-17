@@ -5,6 +5,7 @@ class LessonController {
     async createLesson(req, res) {
         try {
             const { courseId } = req.params;
+            const user_id = req.user.id;
             const { title, description, video_link, arrangement_no, category, ...otherFields } = req.body;
 
             // Verify course ownership
@@ -16,14 +17,13 @@ class LessonController {
                 });
             }
 
-            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to add lessons to this course'
                 });
             }
 
-            // Only validate essential fields
             if (!title) {
                 return res.status(400).json({
                     success: false,
@@ -38,6 +38,7 @@ class LessonController {
                 video_link,
                 arrangement_no,
                 category,
+                user_id,
                 ...otherFields
             });
 
@@ -59,7 +60,8 @@ class LessonController {
     async getLessonsByCourseId(req, res) {
         try {
             const { courseId } = req.params;
-            const lessons = await lessonService.getLessonsByCourseId(courseId);
+            const { category } = req.query;
+            const lessons = await lessonService.getLessonsByCourseId(courseId, category);
 
             res.status(200).json({
                 success: true,
@@ -117,7 +119,7 @@ class LessonController {
                 });
             }
 
-            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to update lessons in this course'
@@ -160,7 +162,42 @@ class LessonController {
                 });
             }
 
-            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You are not authorized to delete lessons from this course'
+                });
+            }
+
+            const lesson = await lessonService.deleteLesson(id);
+
+            if (!lesson) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Lesson not found'
+                });
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'Lesson deleted successfully'
+            });
+        } catch (error) {
+            console.error('Error deleting lesson:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error deleting lesson',
+                error: error.message
+            });
+        }
+    }
+    async deleteIndividualLesson(req, res) {
+        try {
+            const { id } = req.params;
+
+            // Verify course ownership
+
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to delete lessons from this course'
@@ -205,7 +242,7 @@ class LessonController {
                 });
             }
 
-            if (!(course.teacher_id === req.user.id || req.user.role === 'admin')) {
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
                 return res.status(403).json({
                     success: false,
                     message: 'You are not authorized to reorder lessons in this course'
@@ -234,6 +271,27 @@ class LessonController {
             });
         }
     }
+
+    async getLessonsByTeacherId(req, res) {
+        try {
+            const teacherId = req.user.id;
+
+            const lessons = await lessonService.getLessonsByTeacherId(teacherId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Teacher lessons fetched successfully',
+                data: lessons
+            });
+        } catch (error) {
+            console.error('Error fetching teacher lessons:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching teacher lessons',
+                error: error.message
+            });
+        }
+    };
 }
 
 export default new LessonController(); 

@@ -228,4 +228,29 @@ export const getWinningQuestionsByTeacher = async (teacherId) => {
     } catch (error) {
         throw new Error(`Error fetching winning questions: ${error.message}`);
     }
+};
+
+export const getCourseCategoriesById = async (courseId) => {
+    try {
+
+        const { data: course, error } = await supabase
+            .from('courses')
+            .select(`
+                title,
+                category
+            `)
+            .eq('id', courseId)
+            .single();
+
+        if (error) throw new Error(error.message);
+        if (!course) throw new Error('Course not found');
+
+        return {
+            courseId: course.id,
+            courseTitle: course.title,
+            category: course.category || null
+        };
+    } catch (error) {
+        throw new Error(`Error fetching course categories: ${error.message}`);
+    }
 }; 

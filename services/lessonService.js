@@ -4,7 +4,7 @@ import courseService from "./courseService.js";
 class LessonService {
     // Create a new lesson
     async createLesson(lessonData) {
-        const { course_id, title, description, video_link, arrangement_no } = lessonData;
+        const { course_id, title, description, video_link, arrangement_no, category, user_id } = lessonData;
         const { data, error } = await supabase
             .from('lessons')
             .insert([{
@@ -12,7 +12,9 @@ class LessonService {
                 title,
                 description,
                 video_link,
-                arrangement_no
+                arrangement_no,
+                category,
+                user_id
             }])
             .select()
             .single();
@@ -26,11 +28,12 @@ class LessonService {
     }
 
     // Get all lessons for a course
-    async getLessonsByCourseId(courseId) {
+    async getLessonsByCourseId(courseId, category) {
         const { data, error } = await supabase
             .from('lessons')
             .select('*')
             .eq('course_id', courseId)
+            .eq('category', category)
             .order('arrangement_no', { ascending: true });
 
         if (error) throw error;
@@ -71,7 +74,7 @@ class LessonService {
 
     // Delete lesson
     async deleteLesson(id) {
-        // First get the course_id before deleting
+
         const lesson = await this.getLessonById(id);
         if (!lesson) return null;
 
@@ -84,7 +87,6 @@ class LessonService {
 
         if (error) throw error;
 
-        // Update course lesson count
         if (data) {
             await courseService.updateLessonCount(lesson.course_id);
         }
@@ -131,6 +133,49 @@ class LessonService {
         if (error2) throw error2;
 
         return { success: true, message: "Arrangement numbers swapped successfully" };
+    }
+
+    // Get all lessons by teacher ID
+    async getLessonsByTeacherId(teacherId) {
+        try {
+            const { data: lessons, error } = await supabase
+                .from('lessons')
+                .select(`
+                    id,
+                    title,
+                    description,
+                    video_link,
+                    category,
+                    created_at,
+                    updated_at,
+                    course_id,
+                    courses (
+                        id,
+                        title
+                    )
+                `)
+                .eq('user_id', teacherId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw new Error(error.message);
+
+            // Transform the data to include course information
+            const formattedLessons = lessons.map(lesson => ({
+                id: lesson.id,
+                title: lesson.title,
+                description: lesson.description,
+                video_link: lesson.video_link,
+                category: lesson.category,
+                created_at: lesson.created_at,
+                updated_at: lesson.updated_at,
+                course_id: lesson.course_id,
+                course_title: lesson.courses?.title || 'No Course'
+            }));
+
+            return formattedLessons;
+        } catch (error) {
+            throw new Error(`Error fetching teacher lessons: ${error.message}`);
+        }
     }
 }
 
