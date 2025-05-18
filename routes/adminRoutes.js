@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllTeachers, toggleTeacherStatus, getTeacherDetails } from '../services/adminService.js';
+import { getAllTeachers, toggleTeacherStatus, getTeacherDetails, getFullDetails } from '../services/adminService.js';
 import { verifyToken } from '../middleware/auth.js';
 import * as winningQuestionController from '../controllers/winningQuestionController.js';
 
@@ -32,6 +32,15 @@ router.get('/teacher/:id', verifyToken, isAdmin, async (req, res) => {
         const { id } = req.params;
         const teacherDetails = await getTeacherDetails(id);
         res.json(teacherDetails);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/full-details', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const fullDetails = await getFullDetails();
+        res.json(fullDetails);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
