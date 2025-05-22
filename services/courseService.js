@@ -134,6 +134,16 @@ class CourseService {
         if (error) throw error;
         return data;
     }
+
+    async getCourseSummaries() {
+        const { data, error } = await supabase
+            .from('courses')
+            .select('id, title, description, cover_image')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data;
+    }
 }
 
 export default new CourseService(); 

@@ -221,6 +221,23 @@ class CourseController {
             });
         }
     };
+
+    async getCourseSummaries(req, res) {
+        try {
+            const courses = await courseService.getCourseSummaries();
+            res.status(200).json({
+                success: true,
+                data: courses
+            });
+        } catch (error) {
+            console.error('Error fetching course summaries:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching course summaries',
+                error: error.message
+            });
+        }
+    }
 }
 
 export default new CourseController(); 

@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Course routes
 router.post('/', verifyToken, verifyTeacher, courseController.createCourse);
+router.get('/summaries', verifyToken, courseController.getCourseSummaries);
 router.get('/teacher', verifyToken, verifyTeacher, courseController.getCoursesByTeacherId);
 router.get('/titles', verifyToken, courseController.getCourseTitles);
 router.get('/', verifyToken, courseController.getAllCourses);

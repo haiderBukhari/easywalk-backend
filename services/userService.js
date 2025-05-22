@@ -96,7 +96,7 @@ export const createUser = async (userData) => {
 export const verifyOTP = async (userId, otp, email) => {
   let data;
   let error;
-  
+
   if (email) {
     const result = await supabase
       .from("users")
@@ -109,10 +109,10 @@ export const verifyOTP = async (userId, otp, email) => {
   } else {
     const result = await supabase
       .from("users")
-      .select("otp")
+      .select("*")
       .eq("id", userId)
       .single();
-  
+
     data = result.data;
     error = result.error;
   }
