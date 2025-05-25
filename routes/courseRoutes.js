@@ -21,6 +21,7 @@ router.get('/lessons/teacher', verifyToken, verifyTeacher, lessonController.getL
 router.delete('/lessons/:id', verifyToken, verifyTeacher, lessonController.deleteIndividualLesson);
 
 router.post('/:courseId/lessons', verifyToken, verifyTeacher, lessonController.createLesson);
+router.get('/get-lesson/:id', verifyToken, lessonController.getLessonById);
 router.get('/:courseId/lessons', verifyToken, lessonController.getLessonsByCourseId);
 router.get('/:courseId/lessons/:id', verifyToken, lessonController.getLessonById);
 router.put('/:courseId/lessons/:id', verifyToken, verifyTeacher, lessonController.updateLesson);

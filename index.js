@@ -8,6 +8,7 @@ import blogRoutes from "./routes/blogRoutes.js";
 import teacherRoutes from "./routes/teacherRoutes.js";
 import adminRoutes from './routes/adminRoutes.js';
 import questionRoutes from './routes/questionRoutes.js';
+import studentRoutes from './routes/studentRoutes.js';
 import { swaggerUi, specs } from "./config/swagger.js";
 
 dotenv.config();
@@ -27,6 +28,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/questions", questionRoutes);
+app.use("/api/students", studentRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running... <a href='/api-docs'>View API documentation</a>");
