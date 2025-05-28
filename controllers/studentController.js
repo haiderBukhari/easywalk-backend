@@ -17,8 +17,8 @@ const enrollInCourse = async (req, res) => {
 const setReminder = async (req, res) => {
     try {
         const studentId = req.user.id; // Assuming verifyToken middleware adds user info to req
-        const { courseId, remindTime, remindDate, examPlane, level, duration, targetScore } = req.body;
-        const result = await studentService.setReminder(studentId, courseId, remindTime, remindDate, examPlane, level, duration, targetScore);
+        const { courseId, remindTime, remindDate, examPlane, level, duration, targetScore, remind_days } = req.body;
+        const result = await studentService.setReminder(studentId, courseId, remindTime, remindDate, examPlane, level, duration, targetScore, remind_days);
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });

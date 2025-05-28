@@ -24,7 +24,7 @@ const enrollInCourse = async (studentId, courseId) => {
     return data1;
 };
 
-const setReminder = async (studentId, courseId, remindTime, remindDate, examPlane, level, duration, targetScore) => {
+const setReminder = async (studentId, courseId, remindTime, remindDate, examPlane, level, duration, targetScore, remind_days) => {
     const { data, error } = await supabase
         .from('exam_plans')
         .update({
@@ -33,6 +33,7 @@ const setReminder = async (studentId, courseId, remindTime, remindDate, examPlan
             exam_plane: examPlane,
             level: level,
             duration: duration,
+            remind_days: remind_days,
             target_score: targetScore,
             updated_at: new Date().toISOString(),
         })
