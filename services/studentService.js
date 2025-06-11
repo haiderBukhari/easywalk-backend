@@ -50,27 +50,33 @@ const getRecentEnrolledCourse = async (studentId) => {
         .from('exam_plans')
         .select('enrolled_course')
         .eq('student_id', studentId)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .order('created_at', { ascending: false });
 
     if (enrollmentError) throw new Error(enrollmentError.message);
-    if (enrollmentData.length === 0) throw new Error('No courses found for this student.');
+    if (!enrollmentData || enrollmentData.length === 0) throw new Error('No courses found for this student.');
 
-    const courseId = enrollmentData[0].enrolled_course;
+    // Get all unique course IDs
+    const courseIds = [...new Set(enrollmentData.map(item => item.enrolled_course))];
 
-    // Get the course name from the courses table
+    // Fetch all course titles in one query
     const { data: courseData, error: courseError } = await supabase
         .from('courses')
-        .select('title')
-        .eq('id', courseId);
+        .select('id, title')
+        .in('id', courseIds);
 
     if (courseError) throw new Error(courseError.message);
-    if (courseData.length === 0) throw new Error('Course not found.');
 
-    return {
+    // Map courseId to title for quick lookup
+    const courseMap = {};
+    courseData.forEach(course => {
+        courseMap[course.id] = course.title;
+    });
+
+    // Build the result array
+    return courseIds.map(courseId => ({
         courseId,
-        courseTitle: courseData[0].title,
-    };
+        courseTitle: courseMap[courseId] || 'Unknown Title'
+    }));
 };
 
 const getTopRatedBlogs = async (courseId) => {

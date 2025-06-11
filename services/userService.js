@@ -23,8 +23,10 @@ const sendOTP = async (phoneNumber, otp) => {
       from: '+19592712080',
       to: `+${phoneNumber}`
     });
+
     return message.sid;
   } catch (error) {
+    console.log(error);
     throw new Error(`Failed to send OTP: ${error.message}`);
   }
 };
