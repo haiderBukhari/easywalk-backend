@@ -115,7 +115,7 @@ const getTopRatedBlogs = async (courseId) => {
         };
     });
 
-    return blogsWithUserDetails;
+    return blogsWithUserDetails[0];
 };
 
 const getAllBlogs = async (courseId) => {
