@@ -80,42 +80,44 @@ const getRecentEnrolledCourse = async (studentId) => {
 };
 
 const getTopRatedBlogs = async (courseId) => {
-    // Get top-rated blogs for the course
+    // Get all published blogs for the course
     const { data: blogData, error: blogError } = await supabase
         .from('blogs')
         .select('id, title, content, created_at, rating, user_id')
         .eq('course_id', courseId)
         .eq('status', 'published')
-        .order('rating', { ascending: false })
         .order('created_at', { ascending: false });
 
     if (blogError) throw new Error(blogError.message);
 
-    // If all ratings are null, get the most recent blog
-    if (blogData.every(blog => blog.rating === null)) {
-        return blogData[0]; // Return the most recent blog
+    if (!blogData || blogData.length === 0) return null;
+
+    // Find the highest rated blog (rating > 0)
+    const ratedBlogs = blogData.filter(blog => blog.rating && blog.rating > 0);
+    let topBlog;
+    if (ratedBlogs.length > 0) {
+        // Sort by rating descending, then by created_at descending
+        ratedBlogs.sort((a, b) => b.rating - a.rating || new Date(b.created_at) - new Date(a.created_at));
+        topBlog = ratedBlogs[0];
+    } else {
+        // All ratings are 0 or null, return the most recent blog
+        topBlog = blogData[0];
     }
 
-    // Get user details for each blog
-    const userIds = blogData.map(blog => blog.user_id);
+    // Get user details for the top blog
     const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id, full_name, profile_image')
-        .in('id', userIds);
+        .eq('id', topBlog.user_id);
 
     if (userError) throw new Error(userError.message);
 
-    // Merge blog and user data
-    const blogsWithUserDetails = blogData.map(blog => {
-        const user = userData.find(user => user.id === blog.user_id);
-        return {
-            ...blog,
-            full_name: user ? user.full_name : null,
-            profile_image: user ? user.profile_image : null,
-        };
-    });
-
-    return blogsWithUserDetails[0];
+    const user = userData && userData[0];
+    return {
+        ...topBlog,
+        full_name: user ? user.full_name : null,
+        profile_image: user ? user.profile_image : null,
+    };
 };
 
 const getAllBlogs = async (courseId) => {
