@@ -255,6 +255,66 @@ class ExamController {
             });
         }
     }
+
+    // Submit exam
+    async submitExam(req, res) {
+        try {
+            const { id } = req.params;
+            const userId = req.user.id;
+            const { questions } = req.body;
+            if (!Array.isArray(questions)) {
+                return res.status(400).json({ success: false, message: 'Questions array is required' });
+            }
+            const result = await examService.submitExam(id, userId, questions);
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            console.error('Error submitting exam:', error);
+            res.status(500).json({ success: false, message: 'Error submitting exam', error: error.message });
+        }
+    }
+
+    // Get exam result for user
+    async getExamResult(req, res) {
+        try {
+            const { id } = req.params;
+            const userId = req.user.id;
+            const result = await examService.getExamResult(id, userId);
+            if (!result) {
+                return res.status(404).json({ success: false, message: 'Result not found' });
+            }
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            console.error('Error fetching exam result:', error);
+            res.status(500).json({ success: false, message: 'Error fetching exam result', error: error.message });
+        }
+    }
+
+    async getUserSubmissions(req, res) {
+        try {
+            const userId = req.user.id;
+            
+            if (!userId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'User ID is required'
+                });
+            }
+
+            const submissions = await examService.getUserSubmissions(userId);
+            
+            res.json({
+                success: true,
+                data: submissions
+            });
+        } catch (error) {
+            console.error('Error getting user submissions:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error getting user submissions',
+                error: error.message
+            });
+        }
+    }
 }
 
 export default new ExamController(); 

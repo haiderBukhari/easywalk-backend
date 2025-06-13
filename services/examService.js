@@ -44,6 +44,8 @@ class ExamService {
             .eq('id', id)
             .single();
 
+        console.log(data);
+
         if (error) throw error;
         return data;
     }
@@ -102,6 +104,125 @@ class ExamService {
             ...exam,
             course_name: exam.courses?.title || 'Unknown Course'
         }));
+    }
+
+    // Submit exam and save result
+    async submitExam(examId, userId, answers) {
+        // Fetch the exam
+        const exam = await this.getExamById(examId);
+        if (!exam) throw new Error('Exam not found');
+        if (!Array.isArray(exam.questions)) throw new Error('Exam questions are not properly set');
+        if (answers.length > exam.questions.length) {
+            throw new Error('Submitted answers exceed the number of questions in the exam');
+        }
+
+        const totalScore = exam.questions.reduce((sum, q) => sum + (q.weightage || 1), 0);
+        
+        // Evaluate answers
+        let obtainedScore = 0;
+        let results = [];
+
+        for (let i = 0; i < exam.questions.length; i++) {
+            const question = exam.questions[i];
+            const answer = answers[i];
+            const selectedOption = Object.values(answer)[0] - 1;
+            const correctOption = question.options.findIndex(opt => opt.correct);
+            
+            const isCorrect = selectedOption === correctOption;
+            if (isCorrect) {
+                obtainedScore += question.weightage || 1;
+            }
+
+            results.push({
+                question: question.text,
+                selected: selectedOption + 1,
+                correct: correctOption + 1,
+                isCorrect,
+                weightage: question.weightage || 1
+            });
+        }
+
+        // Save submission
+        const { data: submission, error: submissionError } = await supabase
+            .from('submissions')
+            .insert([
+                {
+                    examID: examId,
+                    userID: userId,
+                    results,
+                    obtainedScore,
+                    totalScore,
+                    submitted_at: new Date().toISOString()
+                }
+            ])
+            .select()
+            .single();
+
+        if (submissionError) throw submissionError;
+
+        // Update attempted array in exams
+        const attempted = Array.isArray(exam.attempted) ? exam.attempted : [];
+        if (!attempted.includes(userId)) {
+            attempted.push(userId);
+            await supabase
+                .from('exams')
+                .update({ attempted })
+                .eq('id', examId);
+        }
+
+        return { 
+            results, 
+            obtainedScore,
+            totalScore,
+            percentage: (obtainedScore / totalScore) * 100
+        };
+    }
+
+    // Get exam result for a user
+    async getExamResult(examId, userId) {
+        const { data, error } = await supabase
+            .from('submissions')
+            .select('*')
+            .eq('examID', examId)
+            .eq('userID', userId)
+            .order('submitted_at', { ascending: false })
+            .limit(1);
+        if (error) throw error;
+        if (!data || data.length === 0) return null;
+        return data[0];
+    }
+
+    async getUserSubmissions(userId) {
+        try {
+            const { data: submissions, error: submissionsError } = await supabase
+                .from('submissions')
+                .select(`
+                    *,
+                    exam:examID (
+                        id,
+                        title,
+                        description,
+                        category,
+                        created_at
+                    )
+                `)
+                .eq('userID', userId)
+                .order('submitted_at', { ascending: false });
+
+            if (submissionsError) throw submissionsError;
+
+            return submissions.map(submission => ({
+                id: submission.id,
+                exam: submission.exam,
+                obtainedScore: submission.obtainedScore,
+                totalScore: submission.totalScore,
+                results: submission.results,
+                submitted_at: submission.submitted_at
+            }));
+        } catch (error) {
+            console.error('Error in getUserSubmissions:', error);
+            throw error;
+        }
     }
 }
 

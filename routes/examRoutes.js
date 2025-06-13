@@ -10,5 +10,8 @@ router.get('/courses/:courseId', verifyToken, examController.getExamsByCourseId)
 router.get('/:id', verifyToken, examController.getExamById);
 router.put('/:id', verifyToken, verifyTeacher, examController.updateExam);
 router.delete('/:id', verifyToken, verifyTeacher, examController.deleteExam);
+router.post('/:id/submit', verifyToken, examController.submitExam);
+router.get('/:id/result', verifyToken, examController.getExamResult);
+router.get('/submissions/exam', verifyToken, examController.getUserSubmissions);
 
 export default router; 
