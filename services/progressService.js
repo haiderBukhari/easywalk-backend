@@ -5,26 +5,71 @@ class ProgressService {
     async createProgress(userId, progressData) {
         try {
             const { progress_name, lessonId, examId, blogId } = progressData;
-            
-            // Create the base progress object
+
+            // Check if progress already exists for the given IDs
+            let query = supabase
+                .from('progress')
+                .select('*')
+                .eq('user_id', userId);
+
+            // A progress item should be tied to one entity. Prioritize lesson, then exam, then blog.
+            if (lessonId) {
+                query = query.eq('lessonId', lessonId);
+            } else if (examId) {
+                query = query.eq('examId', examId);
+            } else if (blogId) {
+                query = query.eq('blogId', blogId);
+            }
+
+            const { data: existingProgress, error: findError } = await query.maybeSingle();
+
+            if (findError) {
+                console.error('Error finding existing progress:', findError);
+                throw findError;
+            }
+
+            if (existingProgress) {
+                // Progress exists, update updated_at and progress_name
+                const { data, error: updateError } = await supabase
+                    .from('progress')
+                    .update({
+                        updated_at: new Date().toISOString(),
+                        progress_name: progress_name
+                    })
+                    .eq('id', existingProgress.id)
+                    .select()
+                    .single();
+
+                if (updateError) {
+                    console.error('Error updating progress:', updateError);
+                    throw updateError;
+                }
+                return data;
+            }
+
+            // Progress does not exist, create a new one
             const progressObject = {
                 user_id: userId,
                 progress_name,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString() // Set updated_at on creation as well
             };
 
-            // Add optional fields if they exist
+            // Add optional fields if they exist.
             if (lessonId) progressObject.lessonId = lessonId;
             if (examId) progressObject.examId = examId;
             if (blogId) progressObject.blogId = blogId;
 
-            const { data, error } = await supabase
+            const { data, error: insertError } = await supabase
                 .from('progress')
                 .insert([progressObject])
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (insertError) {
+                console.error('Error inserting progress:', insertError);
+                throw insertError;
+            }
             return data;
         } catch (error) {
             console.error('Error in createProgress:', error);
