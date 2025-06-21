@@ -142,6 +142,18 @@ class ExamService {
             });
         }
 
+        // Delete any existing submission for this user and exam
+        const { error: deleteError } = await supabase
+            .from('submissions')
+            .delete()
+            .eq('examID', examId)
+            .eq('userID', userId);
+
+        if (deleteError) {
+            console.error('Error deleting previous submission:', deleteError);
+            throw deleteError; // Or handle it more gracefully
+        }
+
         // Save submission
         const { data: submission, error: submissionError } = await supabase
             .from('submissions')
