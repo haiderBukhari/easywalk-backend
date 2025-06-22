@@ -37,6 +37,9 @@ class QuestionService {
     }
 
     async getQuestionsByCourseId(courseId, category = null) {
+
+        console.log(courseId, category);
+        
         let query = supabase
             .from('questions')
             .select(`
