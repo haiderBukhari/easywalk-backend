@@ -77,13 +77,21 @@ class CourseService {
 
     // Delete course
     async deleteCourse(id) {
+        // Delete related exam plans
+        await supabase.from('exam_plan').delete().eq('enrolled_course', id);
+        // Delete related blogs
+        await supabase.from('blogs').delete().eq('course_id', id);
+        // Delete related exams
+        await supabase.from('exams').delete().eq('course_id', id);
+        // Delete related lessons
+        await supabase.from('lessons').delete().eq('course_id', id);
+        // Now delete the course itself
         const { data, error } = await supabase
             .from('courses')
             .delete()
             .eq('id', id)
             .select()
             .single();
-
         if (error) throw error;
         return data;
     }

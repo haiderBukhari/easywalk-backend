@@ -43,4 +43,16 @@ export const verifyTeacher = (req, res, next) => {
         });
     }
     next();
+};
+
+export const verifySameUser = (req, res, next) => {
+    const userIdFromToken = req.user && req.user.id;
+    const userIdFromParams = req.params && req.params.id;
+    if (!userIdFromToken || !userIdFromParams || userIdFromToken !== userIdFromParams) {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. You can only perform this action on your own account.'
+        });
+    }
+    next();
 }; 

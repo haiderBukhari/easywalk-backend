@@ -1,11 +1,12 @@
 import express from 'express';
 import { getAllTeachers, toggleTeacherStatus, getTeacherDetails, getFullDetails } from '../services/adminService.js';
-import { verifyToken } from '../middleware/auth.js';
+import { verifySameUser, verifyToken } from '../middleware/auth.js';
 import * as winningQuestionController from '../controllers/winningQuestionController.js';
+import * as userService from '../services/userService.js';
+import * as promoController from '../controllers/promoController.js';
 
 const router = express.Router();
 
-// Middleware to check if user is admin
 const isAdmin = async (req, res, next) => {
     try {
         if (req.user.role !== 'admin') {
@@ -57,8 +58,55 @@ router.put('/teacher/status/:id', verifyToken, isAdmin, async (req, res) => {
     }
 });
 
-// Winning Questions routes
 router.post('/winningquestion', verifyToken, winningQuestionController.createWinningQuestion);
 router.get('/winningquestion/teacher', verifyToken, winningQuestionController.getWinningQuestionsByTeacher);
+
+router.get('/students', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const students = await userService.getUsersByRole('student');
+        res.json(students);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.get('/student/:id', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const student = await userService.getUserByIdAndRole(id, 'student');
+        if (!student) {
+            return res.status(404).json({ error: 'Student not found' });
+        }
+        res.json(student);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/student/status/:id', verifyToken, isAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await userService.toggleUserStatus(id);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/student/:id', verifyToken, verifySameUser, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await userService.deleteUser(id);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.post('/promo', verifyToken, isAdmin, promoController.createPromo);
+router.get('/promo', verifyToken, promoController.getAllPromos);
+router.get('/promo/:id', verifyToken, isAdmin, promoController.getPromoById);
+router.put('/promo/:id', verifyToken, isAdmin, promoController.updatePromo);
+router.delete('/promo/:id', verifyToken, isAdmin, promoController.deletePromo);
 
 export default router; 
