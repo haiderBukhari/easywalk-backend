@@ -3,6 +3,13 @@ import supabase from '../config/supabaseClient.js';
 export const createTermsConditions = async (req, res) => {
   try {
     const { content } = req.body;
+    // Delete all existing records first
+    const { error: deleteError } = await supabase
+      .from('terms_conditions')
+      .delete()
+      .neq('id', ''); // delete all
+    if (deleteError) throw deleteError;
+    // Insert the new record
     const { data, error } = await supabase
       .from('terms_conditions')
       .insert([{ content }])
