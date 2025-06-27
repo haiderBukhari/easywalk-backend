@@ -20,6 +20,14 @@ const isAdmin = async (req, res, next) => {
     }
 };
 
+router.post('/privacy-policy', verifyToken, isAdmin, privacyPolicyController.createPrivacyPolicy);
+router.get('/privacy-policy', privacyPolicyController.getAllPrivacyPolicies);
+
+// Terms and Conditions routes
+router.post('/terms-conditions', verifyToken, isAdmin, termsConditionsController.createTermsConditions);
+router.get('/terms-conditions', termsConditionsController.getAllTermsConditions);
+
+
 // Get all teachers
 router.get('/teachers', verifyToken, isAdmin, async (req, res) => {
     try {
@@ -112,11 +120,5 @@ router.put('/promo/:id', verifyToken, isAdmin, promoController.updatePromo);
 router.delete('/promo/:id', verifyToken, isAdmin, promoController.deletePromo);
 
 // Privacy Policy routes
-router.post('/privacy-policy', verifyToken, isAdmin, privacyPolicyController.createPrivacyPolicy);
-router.get('/privacy-policy', privacyPolicyController.getAllPrivacyPolicies);
-
-// Terms and Conditions routes
-router.post('/terms-conditions', verifyToken, isAdmin, termsConditionsController.createTermsConditions);
-router.get('/terms-conditions', termsConditionsController.getAllTermsConditions);
 
 export default router; 
