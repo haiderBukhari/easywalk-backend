@@ -4,6 +4,8 @@ import { verifySameUser, verifyToken } from '../middleware/auth.js';
 import * as winningQuestionController from '../controllers/winningQuestionController.js';
 import * as userService from '../services/userService.js';
 import * as promoController from '../controllers/promoController.js';
+import * as privacyPolicyController from '../controllers/privacyPolicyController.js';
+import * as termsConditionsController from '../controllers/termsConditionsController.js';
 
 const router = express.Router();
 
@@ -108,5 +110,13 @@ router.get('/promo', verifyToken, promoController.getAllPromos);
 router.get('/promo/:id', verifyToken, isAdmin, promoController.getPromoById);
 router.put('/promo/:id', verifyToken, isAdmin, promoController.updatePromo);
 router.delete('/promo/:id', verifyToken, isAdmin, promoController.deletePromo);
+
+// Privacy Policy routes
+router.post('/privacy-policy', verifyToken, isAdmin, privacyPolicyController.createPrivacyPolicy);
+router.get('/privacy-policy', privacyPolicyController.getAllPrivacyPolicies);
+
+// Terms and Conditions routes
+router.post('/terms-conditions', verifyToken, isAdmin, termsConditionsController.createTermsConditions);
+router.get('/terms-conditions', termsConditionsController.getAllTermsConditions);
 
 export default router; 
