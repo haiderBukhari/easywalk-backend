@@ -6,7 +6,7 @@ class ExamController {
     async createExam(req, res) {
         try {
             const { courseId } = req.params;
-            const { title, description, questions, category, status } = req.body;
+            const { title, description, questionIds, category, status } = req.body;
             const teacherId = req.user.id;
 
             if (!title) {
@@ -14,30 +14,6 @@ class ExamController {
                     success: false,
                     message: 'Title is required'
                 });
-            }
-
-            if (!Array.isArray(questions) || questions.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Questions array is required and must not be empty'
-                });
-            }
-
-            for (const question of questions) {
-                if (!question.text || !Array.isArray(question.options) || question.options.length === 0) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Each question must have text and at least one option'
-                    });
-                }
-
-                const correctOptions = question.options.filter(opt => opt.correct);
-                if (correctOptions.length !== 1) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Each question must have exactly one correct option'
-                    });
-                }
             }
 
             const course = await courseService.getCourseById(courseId);
@@ -55,7 +31,7 @@ class ExamController {
                 category,
                 status,
                 description,
-                questions
+                questionIds
             });
 
             res.status(201).json({
@@ -123,7 +99,7 @@ class ExamController {
     async updateExam(req, res) {
         try {
             const { id } = req.params;
-            const { title, description, questions, status } = req.body;
+            const { title, description, questionIds, status } = req.body;
 
             // Validate required fields
             if (!title) {
@@ -131,32 +107,6 @@ class ExamController {
                     success: false,
                     message: 'Title is required'
                 });
-            }
-
-            if (!Array.isArray(questions) || questions.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Questions array is required and must not be empty'
-                });
-            }
-
-            // Validate each question
-            for (const question of questions) {
-                if (!question.text || !Array.isArray(question.options) || question.options.length === 0) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Each question must have text and at least one option'
-                    });
-                }
-
-                // Validate that exactly one option is correct
-                const correctOptions = question.options.filter(opt => opt.correct);
-                if (correctOptions.length !== 1) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Each question must have exactly one correct option'
-                    });
-                }
             }
 
             // Get the exam to check course ownership
@@ -180,7 +130,7 @@ class ExamController {
             const updatedExam = await examService.updateExam(id, {
                 title,
                 description,
-                questions,
+                questionIds,
                 status
             });
 
@@ -251,6 +201,84 @@ class ExamController {
             res.status(500).json({
                 success: false,
                 message: 'Error fetching teacher exams',
+                error: error.message
+            });
+        }
+    }
+
+    // Add questions to exam
+    async addQuestionsToExam(req, res) {
+        try {
+            const { id } = req.params;
+            const { questionIds } = req.body;
+
+            if (!Array.isArray(questionIds) || questionIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Question IDs array is required and must not be empty'
+                });
+            }
+
+            const result = await examService.addQuestionsToExam(id, questionIds);
+
+            res.status(200).json({
+                success: true,
+                message: result.message
+            });
+        } catch (error) {
+            console.error('Error adding questions to exam:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error adding questions to exam',
+                error: error.message
+            });
+        }
+    }
+
+    // Remove questions from exam
+    async removeQuestionsFromExam(req, res) {
+        try {
+            const { id } = req.params;
+            const { questionIds } = req.body;
+
+            if (!Array.isArray(questionIds) || questionIds.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Question IDs array is required and must not be empty'
+                });
+            }
+
+            const result = await examService.removeQuestionsFromExam(id, questionIds);
+
+            res.status(200).json({
+                success: true,
+                message: result.message
+            });
+        } catch (error) {
+            console.error('Error removing questions from exam:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error removing questions from exam',
+                error: error.message
+            });
+        }
+    }
+
+    // Get exam questions
+    async getExamQuestions(req, res) {
+        try {
+            const { id } = req.params;
+            const questions = await examService.getExamQuestions(id);
+
+            res.status(200).json({
+                success: true,
+                data: questions
+            });
+        } catch (error) {
+            console.error('Error fetching exam questions:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching exam questions',
                 error: error.message
             });
         }

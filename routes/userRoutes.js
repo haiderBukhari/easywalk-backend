@@ -138,5 +138,18 @@ router.put("/user-profile", verifyToken, async (req, res) => {
   }
 });
 
+// Get user role
+router.get("/role", verifyToken, async (req, res) => {
+  try {
+    const role = req.user.role || 'user';
+    res.status(200).json({ 
+      role,
+      userId: req.user.id,
+      email: req.user.email 
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

@@ -30,26 +30,39 @@ class BlogService {
 
     async getBlogByTeacherId(teacherId) {
 
-        const { data: exams, error: examsError } = await supabase
+        const { data: blogs, error: blogsError } = await supabase
             .from('blogs')
-            .select(`
-                *,
-                courses (
-                    id,
-                    title,
-                    teacher_id
-                )
-            `)
+            .select('*')
             .eq('user_id', teacherId)
             .order('created_at', { ascending: false });
 
-        if (examsError) throw examsError;
+        if (blogsError) throw blogsError;
 
-        // Map the exams to include course name
-        return exams.map(exam => ({
-            ...exam,
-            course_name: exam.courses?.title || 'Unknown Course'
-        }));
+        // Get course information for each blog
+        const blogsWithCourseInfo = await Promise.all(
+            blogs.map(async (blog) => {
+                try {
+                    const { data: course, error: courseError } = await supabase
+                        .from('courses')
+                        .select('id, title')
+                        .eq('id', blog.course_id)
+                        .single();
+
+                    return {
+                        ...blog,
+                        course_name: course?.title || 'Unknown Course'
+                    };
+                } catch (courseError) {
+                    console.error(`Error fetching course for blog ${blog.id}:`, courseError);
+                    return {
+                        ...blog,
+                        course_name: 'Unknown Course'
+                    };
+                }
+            })
+        );
+
+        return blogsWithCourseInfo;
     }
 
 
@@ -131,24 +144,37 @@ class BlogService {
 
         const { data: blogs, error: blogsError } = await supabase
             .from('blogs')
-            .select(`
-                *,
-                courses (
-                    id,
-                    title,
-                    teacher_id
-                )
-            `)
+            .select('*')
             .in('course_id', courseIds)
             .order('created_at', { ascending: false });
 
         if (blogsError) throw blogsError;
 
-        // Map the blogs to include course name
-        return blogs.map(blog => ({
-            ...blog,
-            course_name: blog.courses?.title || 'Unknown Course'
-        }));
+        // Get course information for each blog
+        const blogsWithCourseInfo = await Promise.all(
+            blogs.map(async (blog) => {
+                try {
+                    const { data: course, error: courseError } = await supabase
+                        .from('courses')
+                        .select('id, title')
+                        .eq('id', blog.course_id)
+                        .single();
+
+                    return {
+                        ...blog,
+                        course_name: course?.title || 'Unknown Course'
+                    };
+                } catch (courseError) {
+                    console.error(`Error fetching course for blog ${blog.id}:`, courseError);
+                    return {
+                        ...blog,
+                        course_name: 'Unknown Course'
+                    };
+                }
+            })
+        );
+
+        return blogsWithCourseInfo;
     }
 }
 

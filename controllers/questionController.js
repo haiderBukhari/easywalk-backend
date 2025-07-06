@@ -7,7 +7,7 @@ class QuestionController {
         try {
             const { courseId } = req.params;
             const teacherId = req.user.id;
-            const { category, questions } = req.body;
+            const { category, question, options, correct, hint, video, exam_id } = req.body;
 
             // Verify course ownership
             const course = await courseService.getCourseById(courseId);
@@ -25,30 +25,98 @@ class QuestionController {
                 });
             }
 
-            if (!category || !questions) {
+            if (!category || !question || !options || !correct) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Category and questions are required'
+                    message: 'Category, question, options, and correct answer are required'
                 });
             }
 
-            const question = await questionService.createQuestion({
+            const questionData = await questionService.createQuestion({
                 course_id: courseId,
                 category,
-                questions,
-                user_id: teacherId
+                question,
+                options,
+                correct,
+                hint,
+                video,
+                user_id: teacherId,
+                exam_id
             });
 
             res.status(201).json({
                 success: true,
                 message: 'Question created successfully',
-                data: question
+                data: questionData
             });
         } catch (error) {
             console.error('Error creating question:', error);
             res.status(500).json({
                 success: false,
                 message: 'Error creating question',
+                error: error.message
+            });
+        }
+    }
+
+    // Create multiple questions
+    async createMultipleQuestions(req, res) {
+        try {
+            const { courseId } = req.params;
+            const teacherId = req.user.id;
+            const { category, questions, exam_id } = req.body;
+
+            // Verify course ownership
+            const course = await courseService.getCourseById(courseId);
+            if (!course) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Course not found'
+                });
+            }
+
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You are not authorized to add questions to this course'
+                });
+            }
+
+            if (!category || !questions || !Array.isArray(questions) || questions.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Category and questions array are required'
+                });
+            }
+
+            // Validate each question
+            for (const q of questions) {
+                if (!q.text || !q.options || !q.correct) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Each question must have text, options, and correct answer'
+                    });
+                }
+            }
+
+            const questionsData = await questionService.createMultipleQuestions({
+                course_id: courseId,
+                category,
+                questions,
+                user_id: teacherId,
+                exam_id
+            });
+
+            res.status(201).json({
+                success: true,
+                message: 'Questions created successfully',
+                data: questionsData
+            });
+        } catch (error) {
+            console.error('Error creating questions:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error creating questions',
                 error: error.message
             });
         }
@@ -109,7 +177,7 @@ class QuestionController {
     async updateQuestion(req, res) {
         try {
             const { id } = req.params;
-            const { category, questions } = req.body;
+            const { category, question, options, correct, hint, video } = req.body;
 
             // Verify question exists and user has permission
             const existingQuestion = await questionService.getQuestionById(id);
@@ -129,7 +197,11 @@ class QuestionController {
 
             const updatedQuestion = await questionService.updateQuestion(id, {
                 category,
-                questions
+                question,
+                options,
+                correct,
+                hint,
+                video
             });
 
             res.status(200).json({
@@ -184,6 +256,53 @@ class QuestionController {
         }
     }
 
+    // Delete questions by category
+    async deleteQuestionsByCategory(req, res) {
+        try {
+            const { courseId } = req.params;
+            const { category } = req.body;
+            const teacherId = req.user.id;
+
+            // Verify course ownership
+            const course = await courseService.getCourseById(courseId);
+            if (!course) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Course not found'
+                });
+            }
+
+            if (!(req.user.role === 'admin' || req.user.role === 'teacher')) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You are not authorized to delete questions from this course'
+                });
+            }
+
+            if (!category) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Category is required'
+                });
+            }
+
+            const deletedQuestions = await questionService.deleteQuestionsByCategory(courseId, category, teacherId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Questions deleted successfully',
+                data: deletedQuestions
+            });
+        } catch (error) {
+            console.error('Error deleting questions by category:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error deleting questions by category',
+                error: error.message
+            });
+        }
+    }
+
     // Get questions by teacher ID
     async getQuestionsByTeacherId(req, res) {
         try {
@@ -218,6 +337,62 @@ class QuestionController {
             });
         } catch (error) {
             console.error('Error fetching questions by category:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching questions by category',
+                error: error.message
+            });
+        }
+    }
+
+    // Get questions by exam ID
+    async getQuestionsByExamId(req, res) {
+        try {
+            const { examId } = req.params;
+            const questions = await questionService.getQuestionsByExamId(examId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Exam questions fetched successfully',
+                data: questions
+            });
+        } catch (error) {
+            console.error('Error fetching exam questions:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching exam questions',
+                error: error.message
+            });
+        }
+    }
+
+    // Rate a question
+    async rateQuestion(req, res) {
+        try {
+            const { id } = req.params;
+            const { rating } = req.body;
+
+            if (rating === undefined || rating < 1 || rating > 5) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Rating must be between 1 and 5'
+                });
+            }
+
+            const question = await questionService.rateQuestion(id, rating);
+
+            res.status(200).json({
+                success: true,
+                message: 'Question rated successfully',
+                data: question
+            });
+        } catch (error) {
+            console.error('Error rating question:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error rating question',
+                error: error.message
+            });
         }
     }
 }

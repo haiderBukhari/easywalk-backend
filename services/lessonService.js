@@ -148,31 +148,52 @@ class LessonService {
                     category,
                     created_at,
                     updated_at,
-                    course_id,
-                    courses (
-                        id,
-                        title
-                    )
+                    course_id
                 `)
                 .eq('user_id', teacherId)
                 .order('created_at', { ascending: false });
 
             if (error) throw new Error(error.message);
 
-            // Transform the data to include course information
-            const formattedLessons = lessons.map(lesson => ({
-                id: lesson.id,
-                title: lesson.title,
-                description: lesson.description,
-                video_link: lesson.video_link,
-                category: lesson.category,
-                created_at: lesson.created_at,
-                updated_at: lesson.updated_at,
-                course_id: lesson.course_id,
-                course_title: lesson.courses?.title || 'No Course'
-            }));
+            // Get course information for each lesson
+            const lessonsWithCourseInfo = await Promise.all(
+                lessons.map(async (lesson) => {
+                    try {
+                        const { data: course, error: courseError } = await supabase
+                            .from('courses')
+                            .select('id, title')
+                            .eq('id', lesson.course_id)
+                            .single();
 
-            return formattedLessons;
+                        return {
+                            id: lesson.id,
+                            title: lesson.title,
+                            description: lesson.description,
+                            video_link: lesson.video_link,
+                            category: lesson.category,
+                            created_at: lesson.created_at,
+                            updated_at: lesson.updated_at,
+                            course_id: lesson.course_id,
+                            course_title: course?.title || 'No Course'
+                        };
+                    } catch (courseError) {
+                        console.error(`Error fetching course for lesson ${lesson.id}:`, courseError);
+                        return {
+                            id: lesson.id,
+                            title: lesson.title,
+                            description: lesson.description,
+                            video_link: lesson.video_link,
+                            category: lesson.category,
+                            created_at: lesson.created_at,
+                            updated_at: lesson.updated_at,
+                            course_id: lesson.course_id,
+                            course_title: 'No Course'
+                        };
+                    }
+                })
+            );
+
+            return lessonsWithCourseInfo;
         } catch (error) {
             throw new Error(`Error fetching teacher lessons: ${error.message}`);
         }

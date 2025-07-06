@@ -82,26 +82,67 @@ class ProgressService {
         try {
             const { data, error } = await supabase
                 .from('progress')
-                .select(`
-                    *,
-                    lesson:lessonId (
-                        id,
-                        title
-                    ),
-                    exam:examId (
-                        id,
-                        title
-                    ),
-                    blog:blogId (
-                        id,
-                        title
-                    )
-                `)
+                .select('*')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            return data;
+
+            // Get related data for each progress entry
+            const progressWithDetails = await Promise.all(
+                data.map(async (progress) => {
+                    const result = { ...progress };
+
+                    // Get lesson details if lessonId exists
+                    if (progress.lessonId) {
+                        try {
+                            const { data: lesson } = await supabase
+                                .from('lessons')
+                                .select('id, title')
+                                .eq('id', progress.lessonId)
+                                .single();
+                            result.lesson = lesson;
+                        } catch (error) {
+                            console.error(`Error fetching lesson ${progress.lessonId}:`, error);
+                            result.lesson = null;
+                        }
+                    }
+
+                    // Get exam details if examId exists
+                    if (progress.examId) {
+                        try {
+                            const { data: exam } = await supabase
+                                .from('exams')
+                                .select('id, title')
+                                .eq('id', progress.examId)
+                                .single();
+                            result.exam = exam;
+                        } catch (error) {
+                            console.error(`Error fetching exam ${progress.examId}:`, error);
+                            result.exam = null;
+                        }
+                    }
+
+                    // Get blog details if blogId exists
+                    if (progress.blogId) {
+                        try {
+                            const { data: blog } = await supabase
+                                .from('blogs')
+                                .select('id, title')
+                                .eq('id', progress.blogId)
+                                .single();
+                            result.blog = blog;
+                        } catch (error) {
+                            console.error(`Error fetching blog ${progress.blogId}:`, error);
+                            result.blog = null;
+                        }
+                    }
+
+                    return result;
+                })
+            );
+
+            return progressWithDetails;
         } catch (error) {
             console.error('Error in getUserProgress:', error);
             throw error;

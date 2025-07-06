@@ -12,27 +12,49 @@ export const getAllTeachers = async () => {
                 contact_number,
                 created_at,
                 profile_image,
-                status,
-                courses: courses(count)
+                status
             `)
             .eq('role', 'teacher')
             .order('created_at', { ascending: false });
 
         if (teachersError) throw new Error(teachersError.message);
 
-        // Transform the data to match the required format
-        const formattedTeachers = teachers.map(teacher => ({
-            id: teacher.id,
-            full_name: teacher.full_name,
-            email: teacher.email,
-            contact_number: teacher.contact_number,
-            joined_date: teacher.created_at,
-            profile_image: teacher.profile_image,
-            status: teacher.status,
-            total_courses: teacher.courses[0].count
-        }));
+        // Get course counts for each teacher
+        const teachersWithCourseCounts = await Promise.all(
+            teachers.map(async (teacher) => {
+                const { count, error: countError } = await supabase
+                    .from('courses')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('teacher_id', teacher.id);
 
-        return formattedTeachers;
+                if (countError) {
+                    console.error(`Error counting courses for teacher ${teacher.id}:`, countError);
+                    return {
+                        id: teacher.id,
+                        full_name: teacher.full_name,
+                        email: teacher.email,
+                        contact_number: teacher.contact_number,
+                        joined_date: teacher.created_at,
+                        profile_image: teacher.profile_image,
+                        status: teacher.status,
+                        total_courses: 0
+                    };
+                }
+
+                return {
+                    id: teacher.id,
+                    full_name: teacher.full_name,
+                    email: teacher.email,
+                    contact_number: teacher.contact_number,
+                    joined_date: teacher.created_at,
+                    profile_image: teacher.profile_image,
+                    status: teacher.status,
+                    total_courses: count || 0
+                };
+            })
+        );
+
+        return teachersWithCourseCounts;
     } catch (error) {
         throw new Error(`Error fetching teachers: ${error.message}`);
     }
@@ -296,7 +318,6 @@ export const getFullDetails = async () => {
         const { data: courses, error: coursesError } = await supabase
             .from('courses')
             .select('count')
-            .not('teacher_id', 'is', null)
             .single();
 
         if (coursesError) throw new Error(coursesError.message);
