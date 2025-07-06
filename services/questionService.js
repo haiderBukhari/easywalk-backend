@@ -3,7 +3,7 @@ import supabase from "../config/supabaseClient.js";
 class QuestionService {
     // Create a new question
     async createQuestion(questionData) {
-        const { course_id, category, question, options, correct, hint, video, user_id, exam_id } = questionData;
+        const { course_id, category, question, options, correct, hint, video, image, user_id, exam_id } = questionData;
 
         const { data, error } = await supabase
             .from('questions')
@@ -15,6 +15,7 @@ class QuestionService {
                 correct,
                 hint,
                 video,
+                image,
                 user_id,
                 exam_id
             }])
@@ -42,6 +43,7 @@ class QuestionService {
             correct: q.correct,
             hint: q.hint || null,
             video: q.video || null,
+            image: q.image || null,
             user_id,
             exam_id
         }));
@@ -56,7 +58,6 @@ class QuestionService {
     }
 
     async getQuestionsByCourseId(courseId, category = null) {
-        console.log(courseId, category);
         
         let query = supabase
             .from('questions')
@@ -69,11 +70,58 @@ class QuestionService {
                 correct,
                 hint,
                 video,
+                image,
                 rating,
                 created_at,
                 updated_at
             `)
             .eq('course_id', courseId);
+
+        if (category) {
+            query = query.eq('category', category);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Get course information
+        const { data: course, error: courseError } = await supabase
+            .from('courses')
+            .select('id, title')
+            .eq('id', courseId)
+            .single();
+
+        if (courseError) throw courseError;
+
+        // Add course name to each question
+        const questionsWithCourseInfo = data.map(question => ({
+            ...question,
+            course_name: course?.title || 'Unknown Course'
+        }));
+
+        return questionsWithCourseInfo;
+    }
+
+    async getQuestionsByCourseIdAndUserId(userId, courseId, category = null) {
+        let query = supabase
+            .from('questions')
+            .select(`
+                id,
+                course_id,
+                category,
+                question,
+                options,
+                correct,
+                hint,
+                video,
+                image,
+                rating,
+                created_at,
+                updated_at
+            `)
+            .eq('course_id', courseId)
+            .eq('user_id', userId);
 
         if (category) {
             query = query.eq('category', category);
@@ -114,6 +162,7 @@ class QuestionService {
                 correct,
                 hint,
                 video,
+                image,
                 rating,
                 created_at,
                 updated_at
@@ -141,7 +190,7 @@ class QuestionService {
 
     // Update question
     async updateQuestion(id, questionData) {
-        const { category, question, options, correct, hint, video } = questionData;
+        const { category, question, options, correct, hint, video, image } = questionData;
         
         const { data, error } = await supabase
             .from('questions')
@@ -152,6 +201,7 @@ class QuestionService {
                 correct,
                 hint,
                 video,
+                image,
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
@@ -202,6 +252,7 @@ class QuestionService {
                 correct,
                 hint,
                 video,
+                image,
                 rating,
                 created_at,
                 updated_at
@@ -278,6 +329,45 @@ class QuestionService {
         return questionsWithCourseInfo;
     }
 
+    async getQuestionsByCategoryAndUser(category, userId) {
+        const { data, error } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('category', category)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Get unique course IDs
+        const courseIds = [...new Set(data.map(question => question.course_id))];
+
+        // Fetch course information for all unique course IDs
+        let courseMap = {};
+        if (courseIds.length > 0) {
+            const { data: courses, error: coursesError } = await supabase
+                .from('courses')
+                .select('id, title')
+                .in('id', courseIds);
+
+            if (coursesError) throw coursesError;
+
+            // Create a map for quick lookup
+            courseMap = courses.reduce((acc, course) => {
+                acc[course.id] = course.title;
+                return acc;
+            }, {});
+        }
+
+        // Add course name to each question
+        const questionsWithCourseInfo = data.map(question => ({
+            ...question,
+            course_name: courseMap[question.course_id] || 'Unknown Course'
+        }));
+
+        return questionsWithCourseInfo;
+    }
+
     // Get questions by exam ID
     async getQuestionsByExamId(examId) {
         const { data, error } = await supabase
@@ -291,6 +381,7 @@ class QuestionService {
                 correct,
                 hint,
                 video,
+                image,
                 rating,
                 created_at,
                 updated_at

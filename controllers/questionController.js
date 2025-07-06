@@ -7,7 +7,7 @@ class QuestionController {
         try {
             const { courseId } = req.params;
             const teacherId = req.user.id;
-            const { category, question, options, correct, hint, video, exam_id } = req.body;
+            const { category, question, options, correct, hint, video, image, exam_id } = req.body;
 
             // Verify course ownership
             const course = await courseService.getCourseById(courseId);
@@ -40,6 +40,7 @@ class QuestionController {
                 correct,
                 hint,
                 video,
+                image,
                 user_id: teacherId,
                 exam_id
             });
@@ -58,7 +59,7 @@ class QuestionController {
             });
         }
     }
-
+ 
     // Create multiple questions
     async createMultipleQuestions(req, res) {
         try {
@@ -126,9 +127,15 @@ class QuestionController {
     async getQuestionsByCourseId(req, res) {
         try {
             const { courseId } = req.params;
-            const { category } = req.query;
+            const { category, only } = req.query;
+            const userId = req.user.id;
 
-            const questions = await questionService.getQuestionsByCourseId(courseId, category);
+            let questions;
+            if(only === 'current') {
+                questions = await questionService.getQuestionsByCourseIdAndUserId(userId, courseId, category, only);
+            } else {
+                questions = await questionService.getQuestionsByCourseId(courseId, category);
+            }
 
             res.status(200).json({
                 success: true,
@@ -177,7 +184,7 @@ class QuestionController {
     async updateQuestion(req, res) {
         try {
             const { id } = req.params;
-            const { category, question, options, correct, hint, video } = req.body;
+            const { category, question, options, correct, hint, video, image } = req.body;
 
             // Verify question exists and user has permission
             const existingQuestion = await questionService.getQuestionById(id);
@@ -201,7 +208,8 @@ class QuestionController {
                 options,
                 correct,
                 hint,
-                video
+                video,
+                image
             });
 
             res.status(200).json({
@@ -327,8 +335,16 @@ class QuestionController {
     // Get questions by category
     async getQuestionsByCategory(req, res) {
         try {
-            const { category } = req.query;
-            const questions = await questionService.getQuestionsByCategory(category);
+            const { category, only } = req.query;
+            const userId = req.user.id;
+            
+            let questions;
+            console.log("userId : ", userId);
+            if (only === 'current') {
+                questions = await questionService.getQuestionsByCategoryAndUser(category, userId);
+            } else {
+                questions = await questionService.getQuestionsByCategory(category);
+            }
 
             res.status(200).json({
                 success: true,

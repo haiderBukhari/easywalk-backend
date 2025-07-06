@@ -3,7 +3,7 @@ import supabase from "../config/supabaseClient.js";
 class ExamService {
     // Create a new exam
     async createExam(examData) {
-        const { course_id, title, description, questionIds, teacherId, category, status } = examData;
+        const { course_id, title, description, questionIds, teacherId, category, status, complexity, estimated_time_to_complete } = examData;
         
         // Create the exam first
         const { data: exam, error: examError } = await supabase
@@ -15,6 +15,8 @@ class ExamService {
                 user_id: teacherId,
                 category,
                 status,
+                complexity,
+                estimated_time_to_complete,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }])
@@ -107,7 +109,7 @@ class ExamService {
 
     // Update exam
     async updateExam(id, examData) {
-        const { title, description, questionIds, status } = examData;
+        const { title, description, questionIds, status, complexity, estimated_time_to_complete } = examData;
         
         // Update exam details
         const { data: exam, error: examError } = await supabase
@@ -116,6 +118,8 @@ class ExamService {
                 title,
                 description,
                 status,
+                complexity,
+                estimated_time_to_complete,
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)

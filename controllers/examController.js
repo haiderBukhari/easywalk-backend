@@ -6,13 +6,29 @@ class ExamController {
     async createExam(req, res) {
         try {
             const { courseId } = req.params;
-            const { title, description, questionIds, category, status } = req.body;
+            const { title, description, questionIds, category, status, complexity, estimated_time_to_complete } = req.body;
             const teacherId = req.user.id;
 
             if (!title) {
                 return res.status(400).json({
                     success: false,
                     message: 'Title is required'
+                });
+            }
+
+            // Validate complexity if provided
+            if (complexity && !['easy', 'medium', 'hard'].includes(complexity)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Complexity must be one of: easy, medium, hard'
+                });
+            }
+
+            // Validate estimated_time_to_complete if provided
+            if (estimated_time_to_complete && (typeof estimated_time_to_complete !== 'number' || estimated_time_to_complete <= 0)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Estimated time to complete must be a positive number (in minutes)'
                 });
             }
 
@@ -31,7 +47,9 @@ class ExamController {
                 category,
                 status,
                 description,
-                questionIds
+                questionIds,
+                complexity,
+                estimated_time_to_complete
             });
 
             res.status(201).json({
