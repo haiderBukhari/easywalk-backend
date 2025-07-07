@@ -68,7 +68,7 @@ export const createUser = async (userData) => {
       } catch (smsError) {
         console.error('Failed to resend OTP:', smsError);
       }
-      const error = new Error("User already exists but is not verified. OTP resent.");
+      const error = new Error("User registered, OTP sent.");
       error.status = 409;
       error.userId = existingUser.id;
       throw error;
