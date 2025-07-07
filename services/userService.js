@@ -34,20 +34,14 @@ const sendOTP = async (phoneNumber, otp) => {
 const checkExistingUser = async (email, contactNumber) => {
   const { data, error } = await supabase
     .from("users")
-    .select("email, contact_number")
+    .select("*")
     .or(`email.eq.${email},contact_number.eq.${contactNumber}`);
 
   if (error) throw new Error(error.message);
-
   if (data && data.length > 0) {
-    const existingUser = data[0];
-    if (existingUser.email === email) {
-      throw new Error("Email already registered");
-    }
-    if (existingUser.contact_number === contactNumber) {
-      throw new Error("Phone number already registered");
-    }
+    return data[0];
   }
+  return null;
 };
 
 export const createUser = async (userData) => {
@@ -59,7 +53,29 @@ export const createUser = async (userData) => {
     }
   }
 
-  await checkExistingUser(userData.email, userData.contact_number);
+  // Check if user exists
+  const existingUser = await checkExistingUser(userData.email, userData.contact_number);
+  if (existingUser) {
+    if (!existingUser.is_verified) {
+      // Resend OTP
+      const otp = generateOTP();
+      try {
+        await sendOTP(existingUser.contact_number, otp);
+        await supabase
+          .from("users")
+          .update({ otp })
+          .eq("id", existingUser.id);
+      } catch (smsError) {
+        console.error('Failed to resend OTP:', smsError);
+      }
+      const error = new Error("User already exists but is not verified. OTP resent.");
+      error.status = 409;
+      error.userId = existingUser.id;
+      throw error;
+    } else {
+      throw new Error("Email or phone number already registered and verified");
+    }
+  }
 
   const otp = generateOTP();
 
