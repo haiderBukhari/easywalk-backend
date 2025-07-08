@@ -188,48 +188,45 @@ const getStudentProgress = async (studentId, courseId) => {
 };
 
 const getCourseQuestionsByCourseId = async (courseId) => {
+    // Get all questions for the course
     const { data: questionsData, error } = await supabase
         .from('questions')
-        .select('id, category, questions, rating, created_at')
+        .select('id, category, question, rating, created_at')
         .eq('course_id', courseId)
         .order('rating', { ascending: false })
         .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
 
+    // Group questions by category
     const categoryMap = new Map();
-
     questionsData.forEach(question => {
-        const existingQuestion = categoryMap.get(question.category);
-        if (!existingQuestion || 
-            (question.rating > existingQuestion.rating) || 
-            (question.rating === existingQuestion.rating && new Date(question.created_at) > new Date(existingQuestion.created_at))) {
-            categoryMap.set(question.category, question);
+        if (!categoryMap.has(question.category)) {
+            categoryMap.set(question.category, []);
         }
-    });
-
-    // Process questions to exclude options, video, hint, and weightage
-    const processedQuestions = Array.from(categoryMap.values()).map(question => {
-        const simplifiedQuestions = question.questions.map(q => ({
-            text: q.text
-        }));
-        return {
+        categoryMap.get(question.category).push({
             id: question.id,
-            category: question.category,
-            questions: simplifiedQuestions,
-            number_of_questions: simplifiedQuestions.length,
+            text: question.question,
             rating: question.rating,
             created_at: question.created_at
-        };
+        });
     });
+
+    // Format output
+    const processedQuestions = Array.from(categoryMap.entries()).map(([category, questions]) => ({
+        category,
+        questions,
+        number_of_questions: questions.length
+    }));
 
     return processedQuestions;
 };
 
 const getQuestionsWithTeacherDetails = async () => {
+    // Get all questions
     const { data: questionsData, error } = await supabase
         .from('questions')
-        .select('id, category, questions, rating, created_at, user_id')
+        .select('id, category, question, rating, created_at, user_id')
         .order('rating', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -252,8 +249,7 @@ const getQuestionsWithTeacherDetails = async () => {
         const simplifiedQuestions = teacherQuestions.map(question => ({
             id: question.id,
             category: question.category,
-            questions: question.questions.map(q => ({ text: q.text })),
-            number_of_questions: question.questions.length,
+            text: question.question,
             rating: question.rating,
             created_at: question.created_at
         }));
@@ -269,22 +265,35 @@ const getQuestionsWithTeacherDetails = async () => {
 };
 
 const getExamsWithTeacherDetails = async (studentId, courseId) => {
+    // Get all published exams for the course
     const { data: examsData, error } = await supabase
         .from('exams')
-        .select('id, status, user_id, attempted, rating, category, questions')
+        .select('id, status, user_id, attempted, rating, category')
         .eq('course_id', courseId)
         .eq('status', 'published')
         .order('rating', { ascending: false });
 
     if (error) throw new Error(error.message);
 
-    const userIds = [...new Set(examsData.map(exam => exam.user_id))];
+    const examIds = examsData.map(exam => exam.id);
+    // Get question counts for each exam
+    let questionsCountByExam = {};
+    if (examIds.length > 0) {
+        const { data: examQuestions, error: eqError } = await supabase
+            .from('exam_questions')
+            .select('exam_id')
+            .in('exam_id', examIds);
+        if (eqError) throw new Error(eqError.message);
+        examQuestions.forEach(eq => {
+            questionsCountByExam[eq.exam_id] = (questionsCountByExam[eq.exam_id] || 0) + 1;
+        });
+    }
 
+    const userIds = [...new Set(examsData.map(exam => exam.user_id))];
     const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id, full_name, profile_image')
         .in('id', userIds);
-
     if (userError) throw new Error(userError.message);
 
     const examsByTeacher = userData.map(user => {
@@ -294,13 +303,13 @@ const getExamsWithTeacherDetails = async (studentId, courseId) => {
             full_name: user.full_name,
             profile_image: user.profile_image,
             exams: teacherExams.map(exam => {
-                const hasAttempted = exam.attempted.includes(studentId);
+                const hasAttempted = Array.isArray(exam.attempted) && exam.attempted.includes(studentId);
                 return {
                     id: exam.id,
                     hasAttempted: hasAttempted,
                     rating: exam.rating,
                     category: exam.category,
-                    total_questions: exam.questions.length
+                    total_questions: questionsCountByExam[exam.id] || 0
                 };
             })
         };
@@ -310,17 +319,31 @@ const getExamsWithTeacherDetails = async (studentId, courseId) => {
 };
 
 const getPublishedExamsByCourseId = async (courseId, studentId) => {
+    // Get all published exams for the course
     const { data: examsData, error } = await supabase
         .from('exams')
-        .select('id, status, attempted, rating, category, questions, created_at')
+        .select('id, status, attempted, rating, category, created_at')
         .eq('course_id', courseId)
         .eq('status', 'published')
         .order('rating', { ascending: false });
 
     if (error) throw new Error(error.message);
 
-    const categoryMap = new Map();
+    // Get question counts for each exam
+    const examIds = examsData.map(exam => exam.id);
+    let questionsCountByExam = {};
+    if (examIds.length > 0) {
+        const { data: examQuestions, error: eqError } = await supabase
+            .from('exam_questions')
+            .select('exam_id')
+            .in('exam_id', examIds);
+        if (eqError) throw new Error(eqError.message);
+        examQuestions.forEach(eq => {
+            questionsCountByExam[eq.exam_id] = (questionsCountByExam[eq.exam_id] || 0) + 1;
+        });
+    }
 
+    const categoryMap = new Map();
     examsData.forEach(exam => {
         const existingExam = categoryMap.get(exam.category);
         if (!existingExam || 
@@ -331,12 +354,12 @@ const getPublishedExamsByCourseId = async (courseId, studentId) => {
     });
 
     return Array.from(categoryMap.values()).map(exam => {
-        const hasAttempted = exam.attempted.includes(studentId);
+        const hasAttempted = Array.isArray(exam.attempted) && exam.attempted.includes(studentId);
         return {
             id: exam.id,
             category: exam.category,
             rating: exam.rating,
-            total_questions: exam.questions.length,
+            total_questions: questionsCountByExam[exam.id] || 0,
             hasAttempted: hasAttempted
         };
     });
