@@ -65,13 +65,10 @@ export const createUser = async (userData) => {
           .from("users")
           .update({ otp })
           .eq("id", existingUser.id);
+        return "User registered, OTP sent.";
       } catch (smsError) {
         console.error('Failed to resend OTP:', smsError);
       }
-      const error = new Error("User registered, OTP sent.");
-      error.status = 409;
-      error.userId = existingUser.id;
-      throw error;
     } else {
       throw new Error("Email or phone number already registered and verified");
     }
@@ -121,7 +118,7 @@ export const verifyOTP = async (userId, otp, email) => {
       .select("*")
       .eq("email", email)
       .single();
-  
+
     data = result.data;
     error = result.error;
   } else {
@@ -134,7 +131,7 @@ export const verifyOTP = async (userId, otp, email) => {
     data = result.data;
     error = result.error;
   }
-  
+
   if (error) throw new Error(error.message);
   if (!data) throw new Error("User not found");
 
@@ -364,7 +361,7 @@ export const getUserByIdAndRole = async (id, role) => {
   const daysSinceLastSat = (dayOfWeek + 1) % 7;
   const lastSat = new Date(today);
   lastSat.setDate(today.getDate() - daysSinceLastSat);
-  lastSat.setHours(0,0,0,0);
+  lastSat.setHours(0, 0, 0, 0);
   // The week is from lastSat to thisSat (inclusive)
   const weekDates = [];
   for (let i = 0; i < 7; i++) {
@@ -374,7 +371,7 @@ export const getUserByIdAndRole = async (id, role) => {
   }
   const thisSat = new Date(lastSat);
   thisSat.setDate(lastSat.getDate() + 6);
-  thisSat.setHours(23,59,59,999);
+  thisSat.setHours(23, 59, 59, 999);
 
   // Get progress entries for this user in the week
   const { data: progressEntries, error: progressError } = await supabase
