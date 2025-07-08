@@ -57,18 +57,12 @@ export const createUser = async (userData) => {
   const existingUser = await checkExistingUser(userData.email, userData.contact_number);
   if (existingUser) {
     if (!existingUser.is_verified) {
-      // Resend OTP
-      const otp = generateOTP();
-      try {
-        await sendOTP(existingUser.contact_number, otp);
-        await supabase
-          .from("users")
-          .update({ otp })
-          .eq("id", existingUser.id);
-        return "User registered, OTP sent.";
-      } catch (smsError) {
-        console.error('Failed to resend OTP:', smsError);
-      }
+      // Delete the unverified user
+      await supabase
+        .from("users")
+        .delete()
+        .eq("id", existingUser.id);
+      // Proceed to create new user below
     } else {
       throw new Error("Email or phone number already registered and verified");
     }
