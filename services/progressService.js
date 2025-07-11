@@ -220,7 +220,7 @@ class ProgressService {
             if (examIds.length > 0) {
                 const { data: exams, error: examsError } = await supabase
                     .from('exams')
-                    .select('id, title, description, category, questions')
+                    .select('id, title, description, category')
                     .in('id', examIds);
                 
                 if (examsError) throw examsError;
