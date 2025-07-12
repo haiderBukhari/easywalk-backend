@@ -3,6 +3,8 @@ import bcrypt from "bcrypt";
 import twilio from "twilio";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import FormData from "form-data";
+import Mailgun from "mailgun.js";
 
 dotenv.config();
 
@@ -11,6 +13,15 @@ const JWT_SECRET = process.env.JWT_TOKEN;
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioClient = twilio(accountSid, authToken);
+
+// Mailgun setup
+const mailgun = new Mailgun(FormData);
+const mg = mailgun.client({
+  username: 'api',
+  key: process.env.MAILGUN_API_KEY || 'API_KEY',
+});
+const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || 'mail.first-4.com';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'Mailgun Sandbox <postmaster@mail.first-4.com>';
 
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -28,6 +39,42 @@ const sendOTP = async (phoneNumber, otp) => {
   } catch (error) {
     console.log(error);
     throw new Error(`Failed to send OTP: ${error.message}`);
+  }
+};
+
+const sendEmailVerification = async (userName, email, code) => {
+  if (!userName || !email || !code) {
+    throw new Error('Missing required fields for email verification.');
+  }
+
+  const subject = 'Your Email Verification Code';
+  const emailBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <div style="background-color: #1976d2; padding: 20px; text-align: center;">
+        <h1 style="color: #fff; margin: 0;">ExamWalk</h1>
+      </div>
+      <div style="padding: 20px; color: #333;">
+        <h2>Hello ${userName},</h2>
+        <p>Thank you for registering. Please use the following verification code to verify your email address:</p>
+        <div style="font-size: 32px; font-weight: bold; color: #1976d2; margin: 20px 0;">${code}</div>
+        <p>If you did not request this, please ignore this email.</p>
+        <p>Best regards,<br>ExamWalk Team</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const data = await mg.messages.create(MAILGUN_DOMAIN, {
+      from: FROM_EMAIL,
+      to: [email],
+      subject,
+      html: emailBody,
+    });
+    console.log('Verification email sent:', data);
+    return { message: 'Verification email sent successfully.' };
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw new Error('Failed to send verification email');
   }
 };
 
@@ -459,6 +506,76 @@ export const toggleUserStatus = async (id) => {
     .single();
   if (error) throw new Error(error.message);
   return { success: true, message: `User status updated to ${newStatus}`, user: data };
+};
+
+export const sendVerificationEmail = async (email) => {
+  // Get user by email
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("email", email)
+    .single();
+
+  if (!data) {
+    throw new Error("User not found");
+  }
+
+  if (data.status === 'inactive') {
+    throw new Error("Your account is inactive. Please contact the administrator.");
+  }
+
+  if (data.is_verified) {
+    throw new Error("User is already verified");
+  }
+
+  const emailCode = generateOTP();
+  
+  try {
+    await sendEmailVerification(data.full_name, data.email, emailCode);
+    
+    // Update user with email verification code
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ otp: emailCode })
+      .eq("email", email);
+
+    if (updateError) throw new Error(updateError.message);
+
+    return { success: true, message: "Verification email sent successfully" };
+  } catch (emailError) {
+    console.error('Failed to send verification email:', emailError);
+    throw new Error('Failed to send verification email');
+  }
+};
+
+export const verifyEmail = async (email, emailCode) => {
+  // Get user by email
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("email", email)
+    .single();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("User not found");
+
+  if (data.status === 'inactive') {
+    throw new Error("Your account is inactive. Please contact the administrator.");
+  }
+
+  if (data.otp !== emailCode) {
+    throw new Error("Invalid email verification code");
+  }
+
+  // Update user to mark as verified (same as verifyOTP)
+  const { error: updateError } = await supabase
+    .from("users")
+    .update({ otp: null, is_verified: true })
+    .eq("id", data.id);
+
+  if (updateError) throw new Error(updateError.message);
+
+  return { success: true, message: "Email verified successfully" };
 };
 
 

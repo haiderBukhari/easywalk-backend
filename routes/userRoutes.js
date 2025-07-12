@@ -4,7 +4,7 @@ import {
   getUserProfile,
   updateUserProfile,
 } from "../controllers/userController.js";
-import { verifyOTP, loginUser, sendOtpAgain, updateUserDetails, updateUserPassword } from "../services/userService.js";
+import { verifyOTP, loginUser, sendOtpAgain, updateUserDetails, updateUserPassword, sendVerificationEmail, verifyEmail } from "../services/userService.js";
 import { verifyToken } from '../middleware/auth.js';
 import bcrypt from "bcrypt";
 import { configDotenv } from "dotenv";
@@ -101,6 +101,38 @@ router.put("/update-user-password", async (req, res) => {
   }
 });
 
+// Email verification routes
+router.post("/send-verification-email", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "email is required" });
+    }
+    const result = await sendVerificationEmail(email);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(error.message === "User not found" ? 404 : 
+               error.message === "Your account is inactive" ? 403 : 
+               error.message === "User is already verified" ? 400 : 500)
+       .json({ error: error.message });
+  }
+});
+
+router.post("/verify-email", async (req, res) => {
+  try {
+    const { email, emailCode } = req.body;
+    if (!email || !emailCode) {
+      return res.status(400).json({ error: "Email and verification code are required" });
+    }
+    const result = await verifyEmail(email, emailCode);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(error.message === "User not found" ? 404 : 
+               error.message === "Invalid email verification code" ? 400 : 
+               error.message === "Your account is inactive" ? 403 : 500)
+       .json({ error: error.message });
+  }
+});
 
 
 router.get("/user-profile", verifyToken, async (req, res) => {
