@@ -67,6 +67,20 @@ router.post("/send-otp", async (req, res) => {
        .json({ error: error.message });
   }
 });
+router.post("/send-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "email is required" });
+    }
+    const result = await sendOtpAgain(email);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(error.message === "User not found" ? 404 : 
+               error.message === "Invalid OTP" ? 400 : 500)
+       .json({ error: error.message });
+  }
+});
 
 //update the user details
 router.put("/update-user", async (req, res) => {

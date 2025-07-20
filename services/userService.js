@@ -524,9 +524,6 @@ export const sendVerificationEmail = async (email) => {
     throw new Error("Your account is inactive. Please contact the administrator.");
   }
 
-  if (data.is_verified) {
-    throw new Error("User is already verified");
-  }
 
   const emailCode = generateOTP();
   
