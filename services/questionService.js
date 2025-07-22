@@ -58,7 +58,7 @@ class QuestionService {
     }
 
     async getQuestionsByCourseId(courseId, category = null) {
-        
+
         let query = supabase
             .from('questions')
             .select(`
@@ -191,7 +191,7 @@ class QuestionService {
     // Update question
     async updateQuestion(id, questionData) {
         const { category, question, options, correct, hint, video, image } = questionData;
-        
+
         const { data, error } = await supabase
             .from('questions')
             .update({
@@ -241,29 +241,45 @@ class QuestionService {
 
     // Get questions by teacher ID
     async getQuestionsByTeacherId(teacherId) {
-        const { data, error } = await supabase
-            .from('questions')
-            .select(`
-                id,
-                course_id,
-                category,
-                question,
-                options,
-                correct,
-                hint,
-                video,
-                image,
-                rating,
-                created_at,
-                updated_at
-            `)
-            .eq('user_id', teacherId)
-            .order('created_at', { ascending: false });
+        const batchSize = 1000;
+        let offset = 0;
+        let allQuestions = [];
+        let keepFetching = true;
 
-        if (error) throw error;
+        while (keepFetching) {
+            const { data, error } = await supabase
+                .from('questions')
+                .select(`
+                    id,
+                    course_id,
+                    category,
+                    question,
+                    options,
+                    correct,
+                    hint,
+                    video,
+                    image,
+                    rating,
+                    created_at,
+                    updated_at
+                `)
+                .eq('user_id', teacherId)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + batchSize - 1);
+
+            if (error) throw error;
+
+            allQuestions = allQuestions.concat(data);
+
+            if (!data || data.length < batchSize) {
+                keepFetching = false;
+            } else {
+                offset += batchSize;
+            }
+        }
 
         // Get unique course IDs
-        const courseIds = [...new Set(data.map(question => question.course_id))];
+        const courseIds = [...new Set(allQuestions.map(question => question.course_id))];
 
         // Fetch course information for all unique course IDs
         let courseMap = {};
@@ -283,12 +299,21 @@ class QuestionService {
         }
 
         // Add course name to each question
-        const questionsWithCourseInfo = data.map(question => ({
+        const questionsWithCourseInfo = allQuestions.map(question => ({
             ...question,
             course_name: courseMap[question.course_id] || 'Unknown Course'
         }));
 
         return questionsWithCourseInfo;
+    }
+
+    async getQuestionCountByTeacherId(teacherId) {
+        const { count, error } = await supabase
+            .from('questions')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', teacherId);
+        if (error) throw error;
+        return count;
     }
 
     async getQuestionsByCategory(category) {

@@ -332,6 +332,25 @@ class QuestionController {
         }
     }
 
+    async getQuestionCountByTeacherId(req, res) {
+        try {
+            const teacherId = req.user.id;
+            const count = await questionService.getQuestionCountByTeacherId(teacherId);
+            res.status(200).json({
+                success: true,
+                message: 'Question count fetched successfully',
+                count
+            });
+        } catch (error) {
+            console.error('Error fetching question count:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error fetching question count',
+                error: error.message
+            });
+        }
+    }
+
     // Get questions by category
     async getQuestionsByCategory(req, res) {
         try {

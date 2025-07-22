@@ -9,6 +9,7 @@ router.post('/courses/:courseId/questions', verifyToken, verifyTeacher, question
 router.post('/courses/:courseId/questions/bulk', verifyToken, verifyTeacher, questionController.createMultipleQuestions);
 router.get('/courses/:courseId/questions', verifyToken, questionController.getQuestionsByCourseId);
 router.get('/teacher', verifyToken, verifyTeacher, questionController.getQuestionsByTeacherId);
+router.get('/teacher/count', verifyToken, verifyTeacher, questionController.getQuestionCountByTeacherId);
 router.get('/category', verifyToken, questionController.getQuestionsByCategory);
 router.get('/exam/:examId', verifyToken, questionController.getQuestionsByExamId);
 router.get('/:id', verifyToken, questionController.getQuestionById);
