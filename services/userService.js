@@ -301,7 +301,6 @@ export const loginUser = async (email, password) => {
     throw new Error("Invalid email or password");
   }
 
-  // Generate JWT token
   const token = jwt.sign(
     {
       id: data.id,
@@ -309,7 +308,7 @@ export const loginUser = async (email, password) => {
       role: data.role || 'user'
     },
     JWT_SECRET,
-    { expiresIn: '24h' }
+    { expiresIn: '30d' }
   );
 
   // Remove sensitive data before sending response
