@@ -276,17 +276,35 @@ const getExamsWithTeacherDetails = async (studentId, courseId) => {
     if (error) throw new Error(error.message);
 
     const examIds = examsData.map(exam => exam.id);
-    // Get question counts for each exam
+    // Initialize all counts to 0 first
     let questionsCountByExam = {};
+    examIds.forEach(examId => {
+        questionsCountByExam[examId] = 0;
+    });
+    
     if (examIds.length > 0) {
-        const { data: examQuestions, error: eqError } = await supabase
-            .from('exam_questions')
-            .select('exam_id')
-            .in('exam_id', examIds);
-        if (eqError) throw new Error(eqError.message);
-        examQuestions.forEach(eq => {
-            questionsCountByExam[eq.exam_id] = (questionsCountByExam[eq.exam_id] || 0) + 1;
-        });
+        // Use a more efficient approach - get counts directly from database
+        try {
+            // Get counts for all exams in parallel using Promise.all
+            const countPromises = examIds.map(async (examId) => {
+                const { count, error } = await supabase
+                    .from('exam_questions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('exam_id', examId);
+                
+                return { examId, count: error ? 0 : count };
+            });
+            
+            const results = await Promise.all(countPromises);
+            
+            // Update the counts
+            results.forEach(({ examId, count }) => {
+                questionsCountByExam[examId] = count;
+            });
+        } catch (error) {
+            console.error('Error fetching exam question counts:', error);
+            // Keep all counts as 0 if there's an error
+        }
     }
 
     const userIds = [...new Set(examsData.map(exam => exam.user_id))];
@@ -329,18 +347,37 @@ const getPublishedExamsByCourseId = async (courseId, studentId) => {
 
     if (error) throw new Error(error.message);
 
-    // Get question counts for each exam
+    // Get question counts for each exam using parallel queries
     const examIds = examsData.map(exam => exam.id);
     let questionsCountByExam = {};
+    
+    // Initialize all counts to 0 first
+    examIds.forEach(examId => {
+        questionsCountByExam[examId] = 0;
+    });
+    
     if (examIds.length > 0) {
-        const { data: examQuestions, error: eqError } = await supabase
-            .from('exam_questions')
-            .select('exam_id')
-            .in('exam_id', examIds);
-        if (eqError) throw new Error(eqError.message);
-        examQuestions.forEach(eq => {
-            questionsCountByExam[eq.exam_id] = (questionsCountByExam[eq.exam_id] || 0) + 1;
-        });
+        try {
+            // Get counts for all exams in parallel using Promise.all
+            const countPromises = examIds.map(async (examId) => {
+                const { count, error } = await supabase
+                    .from('exam_questions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('exam_id', examId);
+                
+                return { examId, count: error ? 0 : count };
+            });
+            
+            const results = await Promise.all(countPromises);
+            
+            // Update the counts
+            results.forEach(({ examId, count }) => {
+                questionsCountByExam[examId] = count;
+            });
+        } catch (error) {
+            console.error('Error fetching exam question counts:', error);
+            // Keep all counts as 0 if there's an error
+        }
     }
 
     const categoryMap = new Map();

@@ -88,6 +88,8 @@ class ExamService {
             .eq('exam_id', id)
             .order('position', { ascending: true });
 
+        console.log(examQuestions);
+
         if (examQuestionsError) throw examQuestionsError;
 
         // Format the questions
