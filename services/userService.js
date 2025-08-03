@@ -574,5 +574,63 @@ export const verifyEmail = async (email, emailCode) => {
   return { success: true, message: "Email verified successfully" };
 };
 
+export const sendExamResultEmail = async (userEmail, userName, examName, examResult) => {
+  if (!userEmail || !userName || !examName || !examResult) {
+    throw new Error('Missing required fields for exam result email.');
+  }
+
+  const { obtainedScore, totalScore, percentage } = examResult;
+  const correctAnswers = obtainedScore;
+  const wrongAnswers = totalScore - obtainedScore;
+
+  const subject = `Your Exam Result: ${examName}`;
+  const emailBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <div style="background-color: #7C3AED; padding: 20px; text-align: center;">
+        <h1 style="color: #fff; margin: 0;">ExamWalk</h1>
+      </div>
+      <div style="padding: 20px; color: #333;">
+        <h2>Hello ${userName},</h2>
+        <p>Your exam result is ready! Here are your details:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #7C3AED; margin-top: 0;">Exam: ${examName}</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+            <div style="text-align: center; padding: 10px; background-color: #d4edda; border-radius: 5px;">
+              <div style="font-size: 24px; font-weight: bold; color: #155724;">${correctAnswers}</div>
+              <div style="font-size: 14px; color: #155724;">Correct Answers</div>
+            </div>
+            <div style="text-align: center; padding: 10px; background-color: #f8d7da; border-radius: 5px;">
+              <div style="font-size: 24px; font-weight: bold; color: #721c24;">${wrongAnswers}</div>
+              <div style="font-size: 14px; color: #721c24;">Wrong Answers</div>
+            </div>
+          </div>
+          <div style="text-align: center; margin-top: 20px;">
+            <div style="font-size: 32px; font-weight: bold; color: #7C3AED;">${percentage.toFixed(1)}%</div>
+            <div style="font-size: 16px; color: #666;">Your Score</div>
+          </div>
+        </div>
+        
+        <p>Keep practicing to improve your performance!</p>
+        <p>Best regards,<br>ExamWalk Team</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const data = await mg.messages.create(MAILGUN_DOMAIN, {
+      from: FROM_EMAIL,
+      to: [userEmail],
+      subject,
+      html: emailBody,
+    });
+    console.log('Exam result email sent:', data);
+    return { message: 'Exam result email sent successfully.' };
+  } catch (error) {
+    console.error('Error sending exam result email:', error);
+    throw new Error('Failed to send exam result email');
+  }
+};
+
 
 

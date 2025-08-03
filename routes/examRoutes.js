@@ -21,4 +21,7 @@ router.post('/:id/submit', verifyToken, examController.submitExam);
 router.get('/:id/result', verifyToken, examController.getExamResult);
 router.get('/submissions/exam', verifyToken, examController.getUserSubmissions);
 
+// Manually send exam result email
+router.post('/:examId/send-result-email/:userId', verifyToken, examController.sendExamResultEmail);
+
 export default router; 

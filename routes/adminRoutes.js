@@ -83,12 +83,15 @@ router.get('/students', verifyToken, isAdmin, async (req, res) => {
 router.get('/student/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const { id } = req.params;
+        console.log('Admin route: Fetching student with ID:', id);
         const student = await userService.getUserByIdAndRole(id, 'student');
+        console.log('Admin route: Student data:', student ? 'found' : 'not found');
         if (!student) {
             return res.status(404).json({ error: 'Student not found' });
         }
         res.json(student);
     } catch (error) {
+        console.error('Admin route error:', error);
         res.status(500).json({ error: error.message });
     }
 });

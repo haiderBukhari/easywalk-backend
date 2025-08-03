@@ -58,32 +58,48 @@ class QuestionService {
     }
 
     async getQuestionsByCourseId(courseId, category = null) {
+        const batchSize = 1000;
+        let offset = 0;
+        let allQuestions = [];
+        let keepFetching = true;
 
-        let query = supabase
-            .from('questions')
-            .select(`
-                id,
-                course_id,
-                category,
-                question,
-                options,
-                correct,
-                hint,
-                video,
-                image,
-                rating,
-                created_at,
-                updated_at
-            `)
-            .eq('course_id', courseId);
+        while (keepFetching) {
+            let query = supabase
+                .from('questions')
+                .select(`
+                    id,
+                    course_id,
+                    category,
+                    question,
+                    options,
+                    correct,
+                    hint,
+                    video,
+                    image,
+                    rating,
+                    created_at,
+                    updated_at
+                `)
+                .eq('course_id', courseId)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + batchSize - 1);
 
-        if (category) {
-            query = query.eq('category', category);
+            if (category) {
+                query = query.eq('category', category);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            allQuestions = allQuestions.concat(data);
+
+            if (!data || data.length < batchSize) {
+                keepFetching = false;
+            } else {
+                offset += batchSize;
+            }
         }
-
-        const { data, error } = await query.order('created_at', { ascending: false });
-
-        if (error) throw error;
 
         // Get course information
         const { data: course, error: courseError } = await supabase
@@ -95,7 +111,7 @@ class QuestionService {
         if (courseError) throw courseError;
 
         // Add course name to each question
-        const questionsWithCourseInfo = data.map(question => ({
+        const questionsWithCourseInfo = allQuestions.map(question => ({
             ...question,
             course_name: course?.title || 'Unknown Course'
         }));
@@ -104,32 +120,49 @@ class QuestionService {
     }
 
     async getQuestionsByCourseIdAndUserId(userId, courseId, category = null) {
-        let query = supabase
-            .from('questions')
-            .select(`
-                id,
-                course_id,
-                category,
-                question,
-                options,
-                correct,
-                hint,
-                video,
-                image,
-                rating,
-                created_at,
-                updated_at
-            `)
-            .eq('course_id', courseId)
-            .eq('user_id', userId);
+        const batchSize = 1000;
+        let offset = 0;
+        let allQuestions = [];
+        let keepFetching = true;
 
-        if (category) {
-            query = query.eq('category', category);
+        while (keepFetching) {
+            let query = supabase
+                .from('questions')
+                .select(`
+                    id,
+                    course_id,
+                    category,
+                    question,
+                    options,
+                    correct,
+                    hint,
+                    video,
+                    image,
+                    rating,
+                    created_at,
+                    updated_at
+                `)
+                .eq('course_id', courseId)
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + batchSize - 1);
+
+            if (category) {
+                query = query.eq('category', category);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            allQuestions = allQuestions.concat(data);
+
+            if (!data || data.length < batchSize) {
+                keepFetching = false;
+            } else {
+                offset += batchSize;
+            }
         }
-
-        const { data, error } = await query.order('created_at', { ascending: false });
-
-        if (error) throw error;
 
         // Get course information
         const { data: course, error: courseError } = await supabase
@@ -141,7 +174,7 @@ class QuestionService {
         if (courseError) throw courseError;
 
         // Add course name to each question
-        const questionsWithCourseInfo = data.map(question => ({
+        const questionsWithCourseInfo = allQuestions.map(question => ({
             ...question,
             course_name: course?.title || 'Unknown Course'
         }));

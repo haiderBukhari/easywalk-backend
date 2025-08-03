@@ -1,5 +1,7 @@
 import examService from '../services/examService.js';
 import courseService from '../services/courseService.js';
+import { sendExamResultEmail } from '../services/userService.js';
+import supabase from '../config/supabaseClient.js';
 
 class ExamController {
     // Create a new exam
@@ -357,6 +359,81 @@ class ExamController {
             res.status(500).json({
                 success: false,
                 message: 'Error getting user submissions',
+                error: error.message
+            });
+        }
+    }
+
+    // Manually send exam result email
+    async sendExamResultEmail(req, res) {
+        try {
+            const { examId, userId } = req.params;
+            
+            if (!examId || !userId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Exam ID and User ID are required'
+                });
+            }
+
+            // Get exam result
+            const result = await examService.getExamResult(examId, userId);
+            if (!result) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Exam result not found'
+                });
+            }
+
+            // Get exam details
+            const { data: examDetails, error: examDetailsError } = await supabase
+                .from('exams')
+                .select('title')
+                .eq('id', examId)
+                .single();
+
+            if (examDetailsError || !examDetails) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Exam not found'
+                });
+            }
+
+            // Get user details
+            const { data: userDetails, error: userDetailsError } = await supabase
+                .from('users')
+                .select('email, full_name')
+                .eq('id', userId)
+                .single();
+
+            if (userDetailsError || !userDetails) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            // Send email
+            await sendExamResultEmail(
+                userDetails.email,
+                userDetails.full_name,
+                examDetails.title,
+                {
+                    obtainedScore: result.obtainedScore,
+                    totalScore: result.totalScore,
+                    percentage: (result.obtainedScore / result.totalScore) * 100
+                }
+            );
+
+            res.status(200).json({
+                success: true,
+                message: 'Exam result email sent successfully'
+            });
+        } catch (error) {
+            console.error('Error sending exam result email:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error sending exam result email',
                 error: error.message
             });
         }

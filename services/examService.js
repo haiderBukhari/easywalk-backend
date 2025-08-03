@@ -1,4 +1,5 @@
 import supabase from "../config/supabaseClient.js";
+import { sendExamResultEmail } from "./userService.js";
 
 class ExamService {
     // Create a new exam
@@ -389,12 +390,52 @@ class ExamService {
                 .eq('id', examId);
         }
 
-        return { 
+        // Get exam details and user details for email
+        const { data: examDetails, error: examDetailsError } = await supabase
+            .from('exams')
+            .select('title')
+            .eq('id', examId)
+            .single();
+
+        if (examDetailsError) {
+            console.error('Error getting exam details for email:', examDetailsError);
+        }
+
+        const { data: userDetails, error: userDetailsError } = await supabase
+            .from('users')
+            .select('email, full_name')
+            .eq('id', userId)
+            .single();
+
+        if (userDetailsError) {
+            console.error('Error getting user details for email:', userDetailsError);
+        }
+
+        // Prepare result data
+        const resultData = { 
             results, 
             obtainedScore,
             totalScore,
             percentage: (obtainedScore / totalScore) * 100
         };
+
+        // Send email if we have both exam and user details
+        if (examDetails && userDetails && userDetails.email) {
+            try {
+                await sendExamResultEmail(
+                    userDetails.email,
+                    userDetails.full_name,
+                    examDetails.title,
+                    resultData
+                );
+                console.log('Exam result email sent successfully to:', userDetails.email);
+            } catch (emailError) {
+                console.error('Failed to send exam result email:', emailError);
+                // Don't throw error here as the exam submission was successful
+            }
+        }
+
+        return resultData;
     }
 
     // Get exam result for a user
